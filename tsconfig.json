@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "alwaysStrict": true,
+    "baseUrl": "./src",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "outDir": "./dist",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "pretty": true,
+    "removeComments": true,
+    "resolveJsonModule": true,
+    "target": "es5",
+    "typeRoots": ["./node_modules/@types", "./src/@types"]
+  },
+  "exclude": ["node_modules"]
+}

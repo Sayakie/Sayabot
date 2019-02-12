@@ -1,0 +1,19 @@
+{
+  "extends": [
+    "tslint:latest",
+    "tslint-config-standard",
+    "tslint-config-prettier"
+  ],
+  "linterOptions": {
+    "exclude": ["node_modules"]
+  },
+  "rules": {
+    "semicolon": [false, "never"],
+    "ordered-imports": false,
+    "no-console": false,
+    "no-empty-interface": false,
+    "no-implicit-dependencies": false,
+    "interface-name": false,
+    "member-ordering": false
+  }
+}

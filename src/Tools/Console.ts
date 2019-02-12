@@ -1,0 +1,76 @@
+import chalk from 'chalk'
+import * as dayjs from 'dayjs'
+import { inspect } from 'util'
+
+const consoleDate = dayjs().format('YY-MM-DD HH:mm:ss')
+// const memoryDate = dayjs().format('YYYY-MM-DDTHH:mm:ss:SSS')
+const processUptime = process.uptime().toFixed(1)
+const processID = process.pid
+
+const inspectOptions: NodeJS.InspectOptions = {
+  colors: true,
+  depth: null
+}
+
+const enum TYPE {
+  INFO = 'INFO',
+  WARN = 'WARN',
+  ERROR = 'ERR!'
+}
+
+class Console {
+  private static readonly out = (
+    consoleType: string,
+    atPoint: string,
+    message?: any,
+    ...optionalParams: any[]
+  ) => {
+    if (!message) {
+      console.log()
+      return
+    }
+
+    console.log(
+      consoleDate,
+      processUptime,
+      processID,
+      consoleType,
+      atPoint,
+      typeof message === 'object' ? inspect(message, inspectOptions) : message,
+      ...optionalParams
+    )
+  }
+
+  public static readonly info = (
+    atPoint: string,
+    message?: any,
+    ...optionalParams: any[]
+  ) => Console.out(chalk.green(TYPE.INFO), atPoint, message, ...optionalParams)
+  public static readonly warn = (
+    atPoint: string,
+    message?: any,
+    ...optionalParams: any[]
+  ) => Console.out(chalk.yellow(TYPE.WARN), atPoint, message, ...optionalParams)
+  public static readonly error = (
+    atPoint: string,
+    message?: any,
+    ...optionalParams: any[]
+  ) => Console.out(chalk.red(TYPE.ERROR), atPoint, message, ...optionalParams)
+
+  public static readonly log = Console.info
+}
+
+export const ConsoleBuilder = (prefix: string) => ({
+  log(message?: any, ...optionalParams: any[]) {
+    Console.info(chalk.yellow(prefix), message, ...optionalParams)
+  },
+  info(message?: any, ...optionalParams: any[]) {
+    Console.info(chalk.yellow(prefix), message, ...optionalParams)
+  },
+  warn(message?: any, ...optionalParams: any[]) {
+    Console.warn(chalk.yellow(prefix), message, ...optionalParams)
+  },
+  error(message?: any, ...optionalParams: any[]) {
+    Console.error(chalk.yellow(prefix), message, ...optionalParams)
+  }
+})

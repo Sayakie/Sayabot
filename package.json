@@ -1,0 +1,44 @@
+{
+  "private": true,
+  "name": "sayabot",
+  "version": "0.1.0",
+  "description": "Simplest way to start Discord bot is using Sayabot",
+  "engines": {
+    "node": ">= 8"
+  },
+  "homepage": "https://github.com/Sayakie/Sayabot#readme",
+  "bugs": {
+    "url": "https://github.com/Sayakie/Sayabot/issues"
+  },
+  "author": "Sayakie <shuvi.dev.b701@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sayakie/Sayabot.git"
+  },
+  "license": "GPL-3.0",
+  "scripts": {
+    "start": "node dist/",
+    "dev": "ts-node -r tsconfig-paths/register src/",
+    "dev:watch": "nodemon --watch ./src --exec ts-node -r tsconfig-paths/register src/",
+    "build": "tsc --p tsconfig.json",
+    "test": ""
+  },
+  "dependencies": {
+    "chalk": "^2.4.2",
+    "dayjs": "^1.8.5",
+    "discord.js": "^11.4.2",
+    "moment": "^2.24.0",
+    "node-opus": "^0.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^10.12.24",
+    "nodemon": "^1.18.10",
+    "prettier": "^1.16.4",
+    "ts-node": "^8.0.2",
+    "tsconfig-paths": "^3.8.0",
+    "tslint": "^5.12.1",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-config-standard": "^8.0.1",
+    "typescript": "^3.3.3"
+  }
+}
