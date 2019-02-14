@@ -15,12 +15,13 @@
     "noUnusedParameters": true,
     "outDir": "./dist",
     "paths": {
+      "*": ["../*"],
       "@/*": ["./*"]
     },
     "pretty": true,
     "removeComments": true,
     "resolveJsonModule": true,
-    "target": "es5",
+    "target": "es2017",
     "typeRoots": ["./node_modules/@types", "./src/@types"]
   },
   "exclude": ["node_modules"]

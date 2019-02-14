@@ -2,11 +2,6 @@ import chalk from 'chalk'
 import * as dayjs from 'dayjs'
 import { inspect } from 'util'
 
-const consoleDate = dayjs().format('YY-MM-DD HH:mm:ss')
-// const memoryDate = dayjs().format('YYYY-MM-DDTHH:mm:ss:SSS')
-const processUptime = process.uptime().toFixed(1)
-const processID = process.pid
-
 const inspectOptions: NodeJS.InspectOptions = {
   colors: true,
   depth: null
@@ -29,6 +24,11 @@ class Console {
       console.log()
       return
     }
+
+    const consoleDate = dayjs().format('YYYY-MM-DD HH:mm:ss.SSS')
+    // const memoryDate = dayjs().format('YYYY-MM-DDTHH:mm:ss.SSS')
+    const processUptime = +process.uptime().toFixed(3)!
+    const processID = process.pid
 
     console.log(
       consoleDate,
@@ -62,7 +62,7 @@ class Console {
 
 export const ConsoleBuilder = (prefix: string) => ({
   log(message?: any, ...optionalParams: any[]) {
-    Console.info(chalk.yellow(prefix), message, ...optionalParams)
+    Console.log(chalk.yellow(prefix), message, ...optionalParams)
   },
   info(message?: any, ...optionalParams: any[]) {
     Console.info(chalk.yellow(prefix), message, ...optionalParams)

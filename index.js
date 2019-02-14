@@ -1,28 +1,38 @@
-/* tslint:disable no-console */
-//const os = require('os')
+// @ts-check
+// tslint:disable
 
-//os.setPriority(19)
-//console.log(os.getPriority())
+const Redis = require('redis')
+const Client = Redis.createClient()
 
-// console.log(process.argv)
+const diff = (literal, ...args) =>
+  '```diff\n' +
+  literal.reduce((l, r, i) => l + (args[i - 1] || '') + r, '') +
+  '```'
 
-const getPureArguments = () => {
-  const PureArguments = new Map()
+var str = ''
+Client.set('SHARD_0_GUILD', 2504)
+Client.set('SHARD_1_GUILD', 2500)
+Client.set('SHARD_2_GUILD', 2499)
+Client.set('SHARD_3_GUILD', 2507)
 
-  // Remove two factors from argv that never need
-  process.argv.splice(0, 2)
-  process.argv
-    .filter(arg => arg.match(/^-(?!-)/))
-    .map(arg => process.argv.splice(process.argv.indexOf(arg, 1), 1))
-  process.argv
-    .filter(arg => arg.includes('--'))
-    .map((_, i) => {
-      PureArguments.set(process.argv[i * 2].slice(2), process.argv[++i * 2 - 1])
+Client.keys('SHARD_*_GUILD', (err, keys) => {
+  if (err) {
+    console.error('asdasdsad' + err)
+  } else {
+    keys.map(key => {
+      Client.get(key, (err2, numGuilds) => {
+        if (err2) {
+          console.error('zz' + err)
+        } else {
+          // prettier-ignore
+          str += `+ [✔️] ${key.replace(/\D/g, '')}: CONNECTED ~ ${numGuilds} guilds\n`
+        }
+      })
     })
+  }
+})
+/*
+const str = `+ [✔️] 0: CONNECTED ~ 2504 guilds\n+ [✔️] 1: CONNECTED ~ 2500 guilds\n+ [✔️] 2: CONNECTED ~ 2499 guilds\n+ [✔️] 3: CONNECTED ~ 2507 guilds\n`*/
 
-  return PureArguments
-}
-
-const args = getPureArguments()
-
-console.log(args)
+console.log(diff`${str}`)
+setInterval(() => console.log(diff`${str}`), 1000)

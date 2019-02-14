@@ -1,0 +1,4 @@
+{
+  "RedisDBPort": 6379,
+  "RedisDBHort": "localhost"
+}

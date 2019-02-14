@@ -17,9 +17,9 @@
   },
   "license": "GPL-3.0",
   "scripts": {
-    "start": "node dist/",
-    "dev": "ts-node -r tsconfig-paths/register src/",
-    "dev:watch": "nodemon --watch ./src --exec ts-node -r tsconfig-paths/register src/",
+    "start": "node dist/ --env production",
+    "dev": "ts-node -r tsconfig-paths/register src/ --env development",
+    "dev:watch": "nodemon --watch ./src --exec ts-node -r tsconfig-paths/register src/ --env development",
     "build": "tsc --p tsconfig.json",
     "test": ""
   },
@@ -27,11 +27,15 @@
     "chalk": "^2.4.2",
     "dayjs": "^1.8.5",
     "discord.js": "^11.4.2",
+    "dotenv": "^6.2.0",
     "moment": "^2.24.0",
-    "node-opus": "^0.3.1"
+    "node-opus": "^0.3.1",
+    "redis": "^2.8.0"
   },
   "devDependencies": {
+    "@types/dotenv": "^6.1.0",
     "@types/node": "^10.12.24",
+    "@types/redis": "^2.8.10",
     "nodemon": "^1.18.10",
     "prettier": "^1.16.4",
     "ts-node": "^8.0.2",
