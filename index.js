@@ -2,9 +2,7 @@
 // tslint:disable
 
 const Redis = require('redis')
-const Client = Redis.createClient()
-
-const diff = (literal, ...args) =>
+const Client = Redis.createClient()const diff = (literal, ...args) =>
   '```diff\n' +
   literal.reduce((l, r, i) => l + (args[i - 1] || '') + r, '') +
   '```'

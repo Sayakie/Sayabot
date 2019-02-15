@@ -30,6 +30,7 @@ class Shard {
     port: db.RedisDBPort,
     host: db.RedisDBHort
   })
+  private Cycle: NodeJS.Timeout
 
   public constructor() {
     Process.setTitle(`${env.botName} v${pkg.version} - ${process.pid}`)
@@ -92,6 +93,7 @@ class Shard {
   }
 
   private readonly ready = () => {
+    this.createCycle()
     this.setStatus('online')
     this.setActivity(`${this.instance.users.size} Users`, {
       url: 'https://sayakie.com',
@@ -163,20 +165,31 @@ class Shard {
     }
   }
 
-  private readonly fetchGuild = () => {
-    this.Redis.set(
-      `SHARD_${this.shardId}_GUILD`,
-      `${this.instance.guilds.size}`
-    )
+  private readonly syncRedis = async () => {
+    if (env.useRedis) {
+      await this.Redis.set(
+        `SHARD_${this.shardId}_GUILD_SIZE`,
+        `${this.instance.guilds.size}`
+      )
+      await this.Redis.set(
+        `SHARD_${this.shardId}_USER_SIZE`,
+        `${this.instance.guilds
+          .map(guild => guild.memberCount)
+          .reduce((prev, cnt) => prev + cnt)}`
+      )
+    }
   }
 
   private readonly bindEvent = () => {
     this.instance.once('ready', this.ready)
     this.instance.on('message', this.onMessage)
 
+    this.instance.on('warn', shardLog.warn)
+    this.instance.on('error', shardLog.error)
+
+    this.Redis.on('warn', shardLog.warn)
     this.Redis.on('error', shardLog.error)
 
-    process.on(IPCEvents.FETCHGUILD as any, this.fetchGuild)
     process.on(IPCEvents.SHUTDOWN as any, this.shutdown)
     process.on(IPCEvents.FORCE_SHUTDOWN as any, () =>
       this.shutdown(IPCEvents.FORCE_SHUTDOWN)
@@ -197,9 +210,22 @@ class Shard {
     })
   }
 
+  private readonly createCycle = () => {
+    const sec = 1000
+
+    // @ts-ignore
+    this.Cycle = setInterval(this.syncRedis().catch(shardLog.error), 30 * sec)
+  }
+
   private readonly shutdown = async (
     Events: IPCEvents = IPCEvents.SHUTDOWN
   ): Promise<void> => {
+    clearInterval(this.Cycle)
+
+    if (env.useRedis) {
+      this.Redis.quit()
+    }
+
     await this.instance.destroy()
     process.send(Events)
     process.exit(0)

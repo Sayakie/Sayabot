@@ -1,4 +1,5 @@
 import * as Cluster from 'cluster'
+import Promise from 'bluebird'
 import { cpus } from 'os'
 import { join } from 'path'
 
@@ -14,6 +15,8 @@ const coreLog = Console('[Core]')
 const execArgv = ['-r', 'tsconfig-paths/register', '-r', 'ts-node/register']
 const exec = join(`${__dirname}/Shard.ts`)
 Cluster.setupMaster({ execArgv, exec })
+
+global.Promise = Promise
 
 export interface Broadcast {
   cmd: IPCEvents
@@ -120,7 +123,7 @@ export const App = {
   },
 
   bindEvent() {
-    process.on('uncaughtException', async Error => coreLog.error(Error.stack))
+    process.on('uncaughtException', Error => coreLog.error(Error.stack))
     process.on('unhandledRejection', (reason, position) => {
       // prettier-ignore
       coreLog.error(`Occured unhandled rejection at: ${position} because of ${reason}`)
