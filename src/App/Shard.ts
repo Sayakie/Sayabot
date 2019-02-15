@@ -2,6 +2,7 @@ import * as fs from 'fs'
 import * as Discord from 'discord.js'
 import * as Redis from 'redis'
 import { join } from 'path'
+import { promisifyAll } from 'bluebird'
 
 import * as pkg from 'package.json'
 import * as config from '@/Config/Config.json'
@@ -9,6 +10,7 @@ import * as db from '@/Config/DBConfig.json'
 import env, { IPCEvents } from '@/Config/Constants'
 import { Instance } from '@/App/Structs/Shard.Struct'
 import { Command } from '@/App/Structs/Command.Struct'
+import { RedisClient } from '@/App/Structs/Redis.Struct'
 import { Process } from '@/App/Utils'
 import { Console } from '@/Tools'
 
@@ -25,11 +27,13 @@ interface ActivityOptions {
 class Shard {
   private readonly shardId = Number.parseInt(shardId, 10)
   private readonly shards = Number.parseInt(shardCount, 10)
+  /*
+  private isReady: boolean
+  private isInstanceReady: boolean
+  private isRedisReady: boolean
+  */
   private instance: Instance
-  private Redis: Redis.RedisClient = Redis.createClient({
-    port: db.RedisDBPort,
-    host: db.RedisDBHort
-  })
+  private Redis: RedisClient
   private Cycle: NodeJS.Timeout
 
   public constructor() {
@@ -45,11 +49,24 @@ class Shard {
           messageCacheLifetime: 120,
           messageSweepInterval: 120
         })
-        this.instance.login(config.token)
+        this.instance.login(config.Discord.token)
         this.instance.receivedData = new Map()
         this.instance.commands = new Discord.Collection()
+        this.Redis = Redis.createClient({
+          port: db.RedisDBPort,
+          host: db.RedisDBHort
+        })
+        this.Redis.select(db.RedisDBName)
         this.loadCommand()
         this.bindEvent()
+      })
+      .then(() => {
+        try {
+          promisifyAll(Redis.RedisClient.prototype)
+          promisifyAll(Redis.Multi.prototype)
+        } catch {
+          /** uwu */
+        }
       })
       .catch(shardLog.error)
   }
@@ -95,11 +112,14 @@ class Shard {
   private readonly ready = () => {
     this.createCycle()
     this.setStatus('online')
+    this.setActivity('Connect to ')
+    /*
     this.setActivity(`${this.instance.users.size} Users`, {
       url: 'https://sayakie.com',
       type: 'LISTENING'
     })
-    process.send(IPCEvents.SHARDREADY)
+    */
+    this.emit(IPCEvents.SHARDREADY)
 
     // prettier-ignore
     shardLog.log(`Logged in as: ${this.instance.user.tag}, with ${this.instance.users.size} users of ${this.instance.guilds.size} servers.`)
@@ -116,7 +136,7 @@ class Shard {
     commandFiles.forEach(file => {
       const command = require(file).default as Command
 
-      command.initialise(this.instance)
+      command.initialise(this.instance, this.Redis)
       command.aliases.unshift(command.cmds)
       command.aliases.forEach(cmd => {
         this.instance.commands.set(cmd, command)
@@ -129,13 +149,15 @@ class Shard {
     // or, ignore all messages that not start with command prefix
     if (
       message.author.bot ||
-      message.content.indexOf(config.commandPrefix) !== 0
+      message.content.indexOf(config.Discord.commandPrefix) !== 0
     ) {
       return
     }
 
-    // prettier-ignore
-    const raw = message.cleanContent.slice(config.commandPrefix.length).trim().split(/\s+/g)
+    const raw = message.cleanContent
+      .slice(config.Discord.commandPrefix.length)
+      .trim()
+      .split(/\s+/g)
     const command = raw.shift().toLowerCase()
     const receivedData = { message, raw }
 
@@ -180,6 +202,10 @@ class Shard {
     }
   }
 
+  private readonly emit = (eventUniqueID: IPCEvents) => {
+    process.send(`EVENT_${eventUniqueID}`)
+  }
+
   private readonly bindEvent = () => {
     this.instance.once('ready', this.ready)
     this.instance.on('message', this.onMessage)
@@ -191,44 +217,33 @@ class Shard {
     this.Redis.on('error', shardLog.error)
 
     process.on(IPCEvents.SHUTDOWN as any, this.shutdown)
-    process.on(IPCEvents.FORCE_SHUTDOWN as any, () =>
-      this.shutdown(IPCEvents.FORCE_SHUTDOWN)
-    )
+    process.on(IPCEvents.FORCE_SHUTDOWN as any, this.shutdown)
 
     process.on('message', (cmd: IPCEvents) => process.emit(cmd as any))
-    process.on('SIGTERM', () => {
-      /** dummy return */
-    })
-    process.on('SIGINT', () => {
-      /** dummy return */
-    })
-    process.on('SIGUSR1', () => {
-      /** dummy return */
-    })
-    process.on('SIGUSR2', () => {
-      /** dummy return */
-    })
+    process.on('SIGTERM', this.shutdown)
+    process.on('SIGINT', this.shutdown)
+    process.on('SIGUSR1', this.shutdown)
+    process.on('SIGUSR2', this.shutdown)
   }
 
   private readonly createCycle = () => {
     const sec = 1000
 
-    // @ts-ignore
-    this.Cycle = setInterval(this.syncRedis().catch(shardLog.error), 30 * sec)
+    this.Cycle = setInterval(this.syncRedis, 30 * sec)
   }
 
-  private readonly shutdown = async (
-    Events: IPCEvents = IPCEvents.SHUTDOWN
-  ): Promise<void> => {
+  private readonly shutdown = () => {
     clearInterval(this.Cycle)
 
     if (env.useRedis) {
       this.Redis.quit()
     }
 
-    await this.instance.destroy()
-    process.send(Events)
-    process.exit(0)
+    try {
+      this.instance.destroy()
+    } catch (err) {
+      shardLog.error(err)
+    }
   }
 }
 

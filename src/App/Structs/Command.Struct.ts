@@ -1,7 +1,5 @@
-import * as Redis from 'redis'
-
-import * as db from '@/Config/DBConfig.json'
 import { Instance } from './Shard.Struct'
+import { RedisClient } from './Redis.Struct'
 
 export const enum Group {
   Administrative = 'administrative',
@@ -11,6 +9,9 @@ export const enum Group {
 export abstract class Command {
   /** Discord Instance */
   public instance: Instance
+
+  /** Redis */
+  public Redis: RedisClient
 
   /** Received message */
   public message: string
@@ -48,30 +49,27 @@ export abstract class Command {
   /** Whether the command should be hidden from the help command */
   public hidden: boolean
 
-  public Client: Redis.RedisClient = Redis.createClient({
-    port: db.RedisDBPort,
-    host: db.RedisDBHort
-  })
-
   public constructor() {
     this.aliases = []
   }
 
-  public initialise(instance: Instance): void {
+  public initialise(instance: Instance, Redis: RedisClient) {
     this.instance = instance
+    this.Redis = Redis
   }
 
   /** Hide this command from the help command */
-  protected hide(): void {
+  protected hide() {
     this.hidden = true
   }
 
-  public hasPermission(): void {
+  public hasPermission() {
     // if (this.ownerOnly)
   }
 
   /** Runs the command */
-  public async run(): Promise<void> {
+  // @ts-ignore
+  public async run(...args: any[]) {
     throw new Error(
       `${this.constructor.name} command does not have a run() method.`
     )

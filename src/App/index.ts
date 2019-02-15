@@ -1,5 +1,5 @@
 import * as Cluster from 'cluster'
-import Promise from 'bluebird'
+import { ChildProcess } from 'child_process'
 import { cpus } from 'os'
 import { join } from 'path'
 
@@ -16,17 +16,17 @@ const execArgv = ['-r', 'tsconfig-paths/register', '-r', 'ts-node/register']
 const exec = join(`${__dirname}/Shard.ts`)
 Cluster.setupMaster({ execArgv, exec })
 
-global.Promise = Promise
-
 export interface Broadcast {
   cmd: IPCEvents
   data?: any | any[]
 }
 
-const broadcast = async ({ cmd }: Broadcast) => {
-  for (const pid in Cluster.workers) {
-    await Cluster.workers[pid].send(cmd)
-  }
+interface ClusterProcess extends ChildProcess {
+  env?: NodeJS.ProcessEnv
+}
+
+interface Cluster extends Cluster.Worker {
+  process: ClusterProcess
 }
 
 const getPureArguments = () => {
@@ -85,6 +85,9 @@ export const numClusters = getClusters()
 
 export const App = {
   closedClusters: 0,
+  lastCluster: null as Cluster.Worker,
+  Clusters: [] as Cluster.Worker[],
+
   start() {
     const commonInfo = `${env.botName} v${pkg.version}`
     coreLog.log(`Start ${commonInfo}`)
@@ -92,11 +95,19 @@ export const App = {
 
     Process.setTitle(commonInfo)
     Config.initialise()
-    App.initCluster()
-    App.bindClusterEvent()
     App.bindEvent()
+    App.bindClusterEvent()
+    App.initCluster()
 
     process.emit(IPCEvents.READY as any)
+  },
+
+  broadcast({ cmd }: Broadcast) {
+    // tslint:disable:no-shadowed-variable
+    // App.Clusters.forEach(Cluster => Cluster.send(cmd))
+    for (const pid in Cluster.workers) {
+      Cluster.workers[pid].send(cmd)
+    }
   },
 
   initCluster() {
@@ -114,11 +125,19 @@ export const App = {
       coreLog.log(`Cluster [PID: ${Worker.process.pid}] has started.`)
     })
 
-    Cluster.on('exit', (Worker, Code, Signal) => {
+    Cluster.on('exit', (Worker: Cluster, Code, Signal) => {
       if (Code === 0) return
 
       // prettier-ignore
       coreLog.log(`Cluster [PID: ${Worker.process.pid}] has been shutdown abnormally. Received ${Signal} signal.`)
+      coreLog.log('Spawning another shard...')
+
+      const clusterEnv = {
+        SHARD_ID: Worker.process.env.SHARD_ID,
+        SHARD_COUNT: numClusters
+      }
+
+      Cluster.fork(clusterEnv)
     })
   },
 
@@ -128,36 +147,30 @@ export const App = {
       // prettier-ignore
       coreLog.error(`Occured unhandled rejection at: ${position} because of ${reason}`)
 
-      broadcast({ cmd: IPCEvents.FORCE_SHUTDOWN })
+      App.broadcast({ cmd: IPCEvents.FORCE_SHUTDOWN })
     })
 
-    process.on(IPCEvents.BROADCAST as any, broadcast)
-    process.on(IPCEvents.FETCHUSER as any, () =>
-      broadcast({ cmd: IPCEvents.FETCHUSER })
-    )
-    process.on(IPCEvents.FETCHCHANNEL as any, () =>
-      broadcast({ cmd: IPCEvents.FETCHCHANNEL })
-    )
-    process.on(IPCEvents.FETCHGUILD as any, () =>
-      broadcast({ cmd: IPCEvents.FETCHGUILD })
-    )
+    process.on(IPCEvents.BROADCAST as any, App.broadcast)
     process.on(IPCEvents.SHUTDOWN as any, App.harmonyExit)
     process.on(IPCEvents.FORCE_SHUTDOWN as any, App.harmonyExit)
 
     // Prevents the master application from closing instantly.
-    process.stdin.resume()
-    process.on('SIGTERM', () => broadcast({ cmd: IPCEvents.SHUTDOWN }))
-    process.on('SIGINT', () => broadcast({ cmd: IPCEvents.SHUTDOWN }))
-    process.on('SIGUSR1', () => broadcast({ cmd: IPCEvents.SHUTDOWN }))
-    process.on('SIGUSR2', () => broadcast({ cmd: IPCEvents.SHUTDOWN }))
+    // process.stdin.resume()
+    process.once('SIGTERM', App.harmonyExit)
+    process.once('SIGINT', App.harmonyExit)
+    process.once('SIGUSR1', App.harmonyExit)
+    process.once('SIGUSR2', App.harmonyExit)
   },
 
   harmonyExit() {
-    ++App.closedClusters
-
-    if (App.closedClusters >= numClusters) {
-      coreLog.log('Master app is closing in harmony')
-      process.exit(0)
+    for (const pid in Cluster.workers) {
+      try {
+        Cluster.workers[pid].kill()
+      } catch (err) {
+        coreLog.error(err)
+      }
     }
+
+    process.exit(0)
   }
 }

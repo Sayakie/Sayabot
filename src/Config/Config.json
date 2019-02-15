@@ -1,4 +1,9 @@
 {
-  "token": "NDk1MDU1OTUzMDgzNzYwNjYw.Dv0xlA.ceqYmHtj88UfOmccR0dBfkvEVK0",
-  "commandPrefix": "--"
+  "Discord": {
+    "token": "NDk1MDU1OTUzMDgzNzYwNjYw.Dv0xlA.ceqYmHtj88UfOmccR0dBfkvEVK0",
+    "commandPrefix": "--"
+  },
+  "Youtube": {
+    "key": ""
+  }
 }
