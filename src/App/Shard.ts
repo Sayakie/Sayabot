@@ -1,4 +1,4 @@
-import * as fs from 'fs'
+import { readdirSync, statSync } from 'fs'
 import * as Discord from 'discord.js'
 import * as Redis from 'redis'
 import { join } from 'path'
@@ -7,6 +7,7 @@ import { promisifyAll } from 'bluebird'
 import * as pkg from 'package.json'
 import * as config from '@/Config/Config.json'
 import * as db from '@/Config/DBConfig.json'
+import { argv } from '@/App'
 import env, { IPCEvents } from '@/Config/Constants'
 import { Instance } from '@/App/Structs/Shard.Struct'
 import { Command } from '@/App/Structs/Command.Struct'
@@ -16,7 +17,14 @@ import { Console } from '@/Tools'
 
 const { SHARD_ID: shardId, SHARD_COUNT: shardCount } = process.env
 const shardLog = Console('[Shard]')
-const disabledEvents: Discord.WSEventType[] = ['TYPING_START']
+const disabledEvents: Discord.WSEventType[] = [
+  'TYPING_START',
+  'CHANNEL_PINS_UPDATE',
+  'USER_NOTE_UPDATE',
+  'USER_SETTINGS_UPDATE',
+  'USER_GUILD_SETTINGS_UPDATE',
+  'VOICE_STATE_UPDATE'
+]
 
 type ActivityType = 'PLAYING' | 'STREAMING' | 'LISTENING' | 'WATCHING'
 interface ActivityOptions {
@@ -35,6 +43,7 @@ class Shard {
   private instance: Instance
   private Redis: RedisClient
   private Cycle: NodeJS.Timeout
+  private debugCycle: NodeJS.Timeout
 
   public constructor() {
     Process.setTitle(`${env.botName} v${pkg.version} - ${process.pid}`)
@@ -52,11 +61,10 @@ class Shard {
         this.instance.login(config.Discord.token)
         this.instance.receivedData = new Map()
         this.instance.commands = new Discord.Collection()
-        this.Redis = Redis.createClient({
-          port: db.RedisDBPort,
-          host: db.RedisDBHort
+        this.Redis = Redis.createClient(db.RedisDBPort, db.RedisDBHost, {
+          db: db.RedisDBName
         })
-        this.Redis.select(db.RedisDBName)
+        this.loadConnection()
         this.loadCommand()
         this.bindEvent()
       })
@@ -85,10 +93,10 @@ class Shard {
     fileLikeArray: string[] = []
   ): string[] => {
     // @see https://gist.github.com/kethinov/6658166
-    const files = fs.readdirSync(dir)
+    const files = readdirSync(dir)
 
     files.forEach(file => {
-      if (fs.statSync(`${dir}/${file}`).isDirectory()) {
+      if (statSync(`${dir}/${file}`).isDirectory()) {
         fileLikeArray = this.walkSync(join(dir, file), fileLikeArray)
       } else {
         fileLikeArray.push(join(dir, file))
@@ -110,7 +118,6 @@ class Shard {
   }
 
   private readonly ready = () => {
-    this.createCycle()
     this.setStatus('online')
     this.setActivity('Connect to ')
     /*
@@ -119,6 +126,11 @@ class Shard {
       type: 'LISTENING'
     })
     */
+
+    this.createCycle()
+    if (argv.has('enable-debug') || env.enableDebug) {
+      this.createDebugCycle()
+    }
     this.emit(IPCEvents.SHARDREADY)
     this.isReady = true
 
@@ -126,6 +138,16 @@ class Shard {
     shardLog.log(`Logged in as: ${this.instance.user.tag}, with ${this.instance.users.size} users of ${this.instance.guilds.size} servers.`)
   }
 
+  private readonly loadConnection = () => {
+    // tslint:disable-next-line:prefer-conditional-expression
+    if (env.useRedis) {
+      this.instance.Connections = new Map()
+    } else {
+      this.instance.Connections = new Map()
+    }
+  }
+
+  // @ts-ignore
   private readonly loadCommand = () => {
     const commandDir = join(`${__dirname}/Commands`)
     const commandFiles = this.walkSync(commandDir).filter(
@@ -156,12 +178,12 @@ class Shard {
       return
     }
 
-    const raw = message.cleanContent
+    const args = message.cleanContent
       .slice(config.Discord.commandPrefix.length)
       .trim()
       .split(/\s+/g)
-    const command = raw.shift().toLowerCase()
-    const receivedData = { message, raw }
+    const command = args.shift().toLowerCase()
+    const receivedData = { message, args }
 
     // Ignore if there are no applicable command
     if (!this.instance.commands.has(command)) {
@@ -178,7 +200,10 @@ class Shard {
     }
 
     try {
-      await this.instance.commands.get(command).run()
+      await this.instance.commands
+        .get(command)
+        .beforeRun()
+        .run()
     } catch (error) {
       await message.channel.send(
         'There ware an error while try to run that command!'
@@ -212,7 +237,6 @@ class Shard {
     this.instance.once('ready', this.ready)
     this.instance.on('message', this.onMessage)
 
-    this.instance.on('debug', shardLog.info)
     this.instance.on('warn', shardLog.warn)
     this.instance.on('error', shardLog.error)
 
@@ -223,10 +247,7 @@ class Shard {
     process.on(IPCEvents.FORCE_SHUTDOWN as any, this.shutdown)
 
     process.on('message', (cmd: IPCEvents) => process.emit(cmd as any))
-    process.on('SIGTERM', this.shutdown)
     process.on('SIGINT', this.shutdown)
-    process.on('SIGUSR1', this.shutdown)
-    process.on('SIGUSR2', this.shutdown)
   }
 
   private readonly createCycle = () => {
@@ -235,8 +256,21 @@ class Shard {
     this.Cycle = setInterval(this.syncRedis, 30 * sec)
   }
 
+  private readonly createDebugCycle = () => {
+    const sec = 1000
+
+    this.debugCycle = setInterval(this.debug, 5 * sec)
+  }
+
+  private readonly debug = () => {
+    const memoryUsed = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)
+
+    shardLog.log(`Used ${memoryUsed} MB`)
+  }
+
   private readonly shutdown = () => {
     clearInterval(this.Cycle)
+    clearInterval(this.debugCycle)
 
     if (env.useRedis) {
       this.Redis.quit()

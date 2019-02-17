@@ -27,7 +27,7 @@ class Console {
 
     const consoleDate = dayjs().format('YYYY-MM-DD HH:mm:ss.SSS')
     // const memoryDate = dayjs().format('YYYY-MM-DDTHH:mm:ss.SSS')
-    const processUptime = +process.uptime().toFixed(3)!
+    const processUptime = process.uptime().toFixed(3)
     const processID = process.pid
 
     console.log(

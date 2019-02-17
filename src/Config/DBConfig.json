@@ -1,5 +1,5 @@
 {
   "RedisDBName": "redis",
   "RedisDBPort": 6379,
-  "RedisDBHort": "localhost"
+  "RedisDBHost": "127.0.0.1"
 }

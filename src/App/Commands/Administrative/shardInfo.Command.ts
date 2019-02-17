@@ -24,20 +24,27 @@ class ShardInfo extends Command {
   }
 
   public async run() {
-    const pool: string[] = []
+    // const pool: string[] = []
     const message = this.instance.receivedData.get('message') as Discord.Message
 
-    await this.Redis.keysAsync('SHARD_*_GUILD').then(keys =>
-      keys.forEach(key =>
-        this.Redis.getAsync(key).then(numGuilds =>
-          pool.push(
-            `+ [✔️] ${key.replace(/\D/g, '')}: CONNECTED ~ ${numGuilds} guilds`
+    /*
+    const pool = await this.Redis.keysAsync('SHARD_*_GUILD').then(keys =>
+      Promise.all(
+        keys.forEach(async key =>
+          this.Redis.getAsync(key).then(
+            numGuilds =>
+              `+ [✔️] ${key.replace(
+                /\D/g,
+                ''
+              )}: CONNECTED ~ ${numGuilds} guilds\n`
           )
         )
       )
     )
+    */
+    const pool = 'hi'
 
-    await message.channel.send(diff`${pool.join('\n')}`).catch(commandLog.error)
+    await message.channel.send(diff`${pool}`).catch(commandLog.error)
   }
 }
 

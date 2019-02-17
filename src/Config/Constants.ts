@@ -4,6 +4,7 @@ const botName = 'Sayabot'
 const useCluster = false
 const useRedis = false
 const Clusters: Cluster = false
+const enableDebug = false
 
 const owners = ['247351691077222401']
 
@@ -25,4 +26,4 @@ export const enum IPCEvents {
   FETCHGUILD
 }
 
-export default { botName, useCluster, useRedis, Clusters, owners }
+export default { botName, useCluster, useRedis, Clusters, owners, enableDebug }

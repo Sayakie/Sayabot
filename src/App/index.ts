@@ -12,9 +12,11 @@ import { Console } from '@/Tools'
 const coreLog = Console('[Core]')
 
 // To run via typescript
-const execArgv = ['-r', 'tsconfig-paths/register', '-r', 'ts-node/register']
-const exec = join(`${__dirname}/Shard.ts`)
-Cluster.setupMaster({ execArgv, exec })
+if (Cluster.isMaster) {
+  const execArgv = ['-r', 'tsconfig-paths/register', '-r', 'ts-node/register']
+  const exec = join(`${__dirname}/Shard.ts`)
+  Cluster.setupMaster({ execArgv, exec })
+}
 
 export interface Broadcast {
   cmd: IPCEvents
@@ -146,8 +148,6 @@ export const App = {
     process.on(IPCEvents.SHUTDOWN as any, App.harmonyExit)
     process.on(IPCEvents.FORCE_SHUTDOWN as any, App.harmonyExit)
 
-    // Prevents the master application from closing instantly.
-    // process.stdin.resume()
     process.once('SIGTERM', App.harmonyExit)
     process.once('SIGINT', App.harmonyExit)
     process.once('SIGUSR1', App.harmonyExit)
@@ -163,6 +163,7 @@ export const App = {
       }
     }
 
+    coreLog.log('Received shutdown signal')
     process.exit(0)
   }
 }

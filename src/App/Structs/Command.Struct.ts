@@ -84,6 +84,14 @@ export abstract class Command {
     return false
   }
 
+  public beforeRun() {
+    if (this.guildOnly && this.message.guild === null) {
+      throw new Error('안대')
+    }
+
+    return this
+  }
+
   /** Runs the command */
   // @ts-ignore
   public async run(...args: any[]) {
