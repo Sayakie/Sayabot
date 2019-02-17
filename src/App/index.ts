@@ -130,14 +130,6 @@ export const App = {
 
       // prettier-ignore
       coreLog.log(`Cluster [PID: ${Worker.process.pid}] has been shutdown abnormally. Received ${Signal} signal.`)
-      coreLog.log('Spawning another shard...')
-
-      const clusterEnv = {
-        SHARD_ID: Worker.process.env.SHARD_ID,
-        SHARD_COUNT: numClusters
-      }
-
-      Cluster.fork(clusterEnv)
     })
   },
 

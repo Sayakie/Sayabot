@@ -27,8 +27,8 @@ interface ActivityOptions {
 class Shard {
   private readonly shardId = Number.parseInt(shardId, 10)
   private readonly shards = Number.parseInt(shardCount, 10)
-  /*
   private isReady: boolean
+  /*
   private isInstanceReady: boolean
   private isRedisReady: boolean
   */
@@ -120,6 +120,7 @@ class Shard {
     })
     */
     this.emit(IPCEvents.SHARDREADY)
+    this.isReady = true
 
     // prettier-ignore
     shardLog.log(`Logged in as: ${this.instance.user.tag}, with ${this.instance.users.size} users of ${this.instance.guilds.size} servers.`)
@@ -148,6 +149,7 @@ class Shard {
     // Ignore all messages from other bots
     // or, ignore all messages that not start with command prefix
     if (
+      !this.isReady ||
       message.author.bot ||
       message.content.indexOf(config.Discord.commandPrefix) !== 0
     ) {
@@ -203,13 +205,14 @@ class Shard {
   }
 
   private readonly emit = (eventUniqueID: IPCEvents) => {
-    process.send(`EVENT_${eventUniqueID}`)
+    process.send(eventUniqueID)
   }
 
   private readonly bindEvent = () => {
     this.instance.once('ready', this.ready)
     this.instance.on('message', this.onMessage)
 
+    this.instance.on('debug', shardLog.info)
     this.instance.on('warn', shardLog.warn)
     this.instance.on('error', shardLog.error)
 

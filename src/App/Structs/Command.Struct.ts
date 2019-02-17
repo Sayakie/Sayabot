@@ -1,4 +1,9 @@
+import * as Discord from 'discord.js'
+
+import env from '@/Config/Constants'
+
 import { Instance } from './Shard.Struct'
+import { Permission } from './Permission.Struct'
 import { RedisClient } from './Redis.Struct'
 
 export const enum Group {
@@ -14,7 +19,7 @@ export abstract class Command {
   public Redis: RedisClient
 
   /** Received message */
-  public message: string
+  public message: Discord.Message
 
   /** Received args */
   public args: string[]
@@ -63,8 +68,20 @@ export abstract class Command {
     this.hidden = true
   }
 
-  public hasPermission() {
-    // if (this.ownerOnly)
+  public isOwner(): boolean {
+    if (env.owners.includes(this.message.member.id)) {
+      return true
+    }
+
+    return false
+  }
+
+  public hasPermission(PermissionType: Permission): boolean {
+    if (this.message.member.hasPermission(PermissionType)) {
+      return true
+    }
+
+    return false
   }
 
   /** Runs the command */
