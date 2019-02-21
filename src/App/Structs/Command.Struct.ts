@@ -8,7 +8,8 @@ import { RedisClient } from './Redis.Struct'
 
 export const enum Group {
   Administrative = 'administrative',
-  Generic = 'generic'
+  Generic = 'generic',
+  Music = 'music'
 }
 
 export abstract class Command {
@@ -54,18 +55,22 @@ export abstract class Command {
   /** Whether the command should be hidden from the help command */
   public hidden: boolean
 
-  public constructor() {
-    this.aliases = []
-  }
+  public isEnable: boolean
 
   public initialise(instance: Instance, Redis: RedisClient) {
     this.instance = instance
+    this.aliases = []
     this.Redis = Redis
+    this.isEnable = true
   }
 
   /** Hide this command from the help command */
   protected hide() {
     this.hidden = true
+  }
+
+  protected disable() {
+    this.isEnable = false
   }
 
   public isOwner(): boolean {
@@ -84,17 +89,20 @@ export abstract class Command {
     return false
   }
 
-  public beforeRun() {
+  public inspect() {
+    this.message = this.instance.receivedData.get('message') as Discord.Message
+    this.args = this.instance.receivedData.get('args') as string[]
+
     if (this.guildOnly && this.message.guild === null) {
-      throw new Error('안대')
+      console.log('빼액')
+      this.disable()
     }
 
     return this
   }
 
   /** Runs the command */
-  // @ts-ignore
-  public async run(...args: any[]) {
+  public async run() {
     throw new Error(
       `${this.constructor.name} command does not have a run() method.`
     )

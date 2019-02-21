@@ -1,11 +1,9 @@
 import * as Discord from 'discord.js'
 import { Command, Group } from '@/App/Structs/Command.Struct'
+import { Embed } from '@/App/Utils'
 import { Console } from '@/Tools'
 
-const tagged = (literal: TemplateStringsArray, ...args: any) =>
-  '```autohotkey\n' +
-  literal.reduce((l, r, i) => l + (args[i - 1] || '') + r, '') +
-  '\n```'
+const tagged = Embed('autohotkey')
 const commandLog = Console('[Command]')
 
 class Ping extends Command {
@@ -18,12 +16,15 @@ class Ping extends Command {
   }
 
   public async run() {
-    const message = this.instance.receivedData.get('message') as Discord.Message
-
-    await message.channel
+    await this.message.channel
       .send('Ping?')
       .then(async (msg: Discord.Message) => {
-        await msg.edit(tagged`Pong! Took ${this.instance.ping} ms`)
+        await msg.edit(
+          tagged`Pong! Took ${msg.createdTimestamp -
+            this.message.createdTimestamp} ms. API Latency tooks ${Math.round(
+            this.instance.ping
+          )}ms`
+        )
       })
       .catch(commandLog.error)
   }

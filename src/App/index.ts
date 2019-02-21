@@ -87,7 +87,7 @@ export const numClusters = getClusters()
 
 export const App = {
   closedClusters: 0,
-  lastCluster: null as Cluster.Worker,
+  lastestCluster: null as Cluster.Worker,
   Clusters: [] as Cluster.Worker[],
 
   start() {
@@ -140,8 +140,6 @@ export const App = {
     process.on('unhandledRejection', (reason, position) => {
       // prettier-ignore
       coreLog.error(`Occured unhandled rejection at: ${position} because of ${reason}`)
-
-      App.broadcast({ cmd: IPCEvents.FORCE_SHUTDOWN })
     })
 
     process.on(IPCEvents.BROADCAST as any, App.broadcast)
@@ -157,7 +155,7 @@ export const App = {
   harmonyExit() {
     for (const pid in Cluster.workers) {
       try {
-        Cluster.workers[pid].kill()
+        Cluster.workers[pid].destroy()
       } catch (err) {
         coreLog.error(err)
       }

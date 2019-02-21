@@ -25,8 +25,6 @@ class ShardInfo extends Command {
 
   public async run() {
     // const pool: string[] = []
-    const message = this.instance.receivedData.get('message') as Discord.Message
-
     /*
     const pool = await this.Redis.keysAsync('SHARD_*_GUILD').then(keys =>
       Promise.all(
@@ -44,7 +42,7 @@ class ShardInfo extends Command {
     */
     const pool = 'hi'
 
-    await message.channel.send(diff`${pool}`).catch(commandLog.error)
+    await this.message.channel.send(diff`${pool}`).catch(commandLog.error)
   }
 }
 

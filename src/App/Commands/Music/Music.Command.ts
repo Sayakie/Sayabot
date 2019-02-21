@@ -1,5 +1,7 @@
-import * as Discord from 'discord.js'
+import { EventEmitter } from 'events'
 import { Command, Group } from '@/App/Structs/Command.Struct'
+
+const Player = new EventEmitter()
 
 class Music extends Command {
   constructor() {
@@ -8,17 +10,34 @@ class Music extends Command {
     this.cmds = 'music'
     this.aliases = ['m']
     this.description = ''
-    this.group = Group.Administrative
+    this.group = Group.Music
     this.guildOnly = true
-    this.hide()
+    this.bindEvent()
+  }
+
+  private bindEvent() {
+    Player.on('play', this.play)
   }
 
   public async run() {
-    const message = this.instance.receivedData.get('message') as Discord.Message
-    // const args = this.instance.receivedData.get('args') as string[]
+    const Connection = this.instance.Connections
+    const GuildID = this.message.guild.id
 
-    await message.reply('늅!')
+    Player.emit(this.args[1])
+    /*
+    if (Connection.has(GuildID)) {
+      const voiceConnection = Connection.get(GuildID)
+    } else {
+      if (this.message.member.voiceChannel) {
+        Connection.set(GuildID, this.message.member.voiceChannel)
+        Connection.get(GuildID).join()
+      } else {
+      }
+    }
+    */
   }
+
+  public async play() {}
 }
 
 export default new Music()

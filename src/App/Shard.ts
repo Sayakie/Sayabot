@@ -12,7 +12,7 @@ import env, { IPCEvents } from '@/Config/Constants'
 import { Instance } from '@/App/Structs/Shard.Struct'
 import { Command } from '@/App/Structs/Command.Struct'
 import { RedisClient } from '@/App/Structs/Redis.Struct'
-import { Process } from '@/App/Utils'
+import { Process, MILLISECONDS_A_SECOND } from '@/App/Utils'
 import { Console } from '@/Tools'
 
 const { SHARD_ID: shardId, SHARD_COUNT: shardCount } = process.env
@@ -172,8 +172,8 @@ class Shard {
     // or, ignore all messages that not start with command prefix
     if (
       !this.isReady ||
-      message.author.bot ||
-      message.content.indexOf(config.Discord.commandPrefix) !== 0
+      !message.content.startsWith(config.Discord.commandPrefix) ||
+      message.author.bot
     ) {
       return
     }
@@ -189,30 +189,34 @@ class Shard {
     if (!this.instance.commands.has(command)) {
       // prettier-ignore
       shardLog.log(`${message.author.tag} said ${message} but there are no applicable commands. skip it.`)
+      /*
       message.channel.send(
         `${message.author.tag}, there are no applicable commands!`
       )
+      */
       return
     }
 
     for (const key of Object.keys(receivedData)) {
-      this.instance.receivedData.set(key, (<any>receivedData)[key])
+      this.instance.receivedData.set(key, (receivedData as any)[key])
     }
 
     try {
       await this.instance.commands
         .get(command)
-        .beforeRun()
+        .inspect()
         .run()
     } catch (error) {
       await message.channel.send(
-        'There ware an error while try to run that command!'
+        'There was an error while try to run that command!'
       )
       shardLog.error(
         `The following command could not be executed, because of ${error}`
       )
     }
   }
+
+  // private readonly onMessageDelete = async()
 
   private readonly syncRedis = async () => {
     if (env.useRedis) {
@@ -236,6 +240,11 @@ class Shard {
   private readonly bindEvent = () => {
     this.instance.once('ready', this.ready)
     this.instance.on('message', this.onMessage)
+    // this.instance.on('messageDelete', this.onMessageDelete)
+    // this.instance.on('messageDeleteBulk', this.onMessageDelete)
+    // this.instance.on('messageUpdate', someListener)
+    // this.instance.on('guildCreate', listener: (guild: Guild))
+    // this.instance.on('guildDelete', listener: (guild: Guild))
 
     this.instance.on('warn', shardLog.warn)
     this.instance.on('error', shardLog.error)
@@ -251,15 +260,11 @@ class Shard {
   }
 
   private readonly createCycle = () => {
-    const sec = 1000
-
-    this.Cycle = setInterval(this.syncRedis, 30 * sec)
+    this.Cycle = setInterval(this.syncRedis, 30 * MILLISECONDS_A_SECOND)
   }
 
   private readonly createDebugCycle = () => {
-    const sec = 1000
-
-    this.debugCycle = setInterval(this.debug, 5 * sec)
+    this.debugCycle = setInterval(this.debug, 5 * MILLISECONDS_A_SECOND)
   }
 
   private readonly debug = () => {
@@ -268,16 +273,16 @@ class Shard {
     shardLog.log(`Used ${memoryUsed} MB`)
   }
 
-  private readonly shutdown = () => {
+  private readonly shutdown = async () => {
     clearInterval(this.Cycle)
     clearInterval(this.debugCycle)
 
     if (env.useRedis) {
-      this.Redis.quit()
+      await this.Redis.quitAsync()
     }
 
     try {
-      this.instance.destroy()
+      await this.instance.destroy()
     } catch (err) {
       shardLog.error(err)
     }
