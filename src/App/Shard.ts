@@ -1,17 +1,15 @@
-import { readdirSync, statSync } from 'fs'
+import * as fs from 'fs'
 import * as Discord from 'discord.js'
-import * as Redis from 'redis'
+// import * as Redis from 'redis'
 import { join } from 'path'
-import { promisifyAll } from 'bluebird'
+// import { promisifyAll } from 'bluebird'
 
 import * as pkg from 'package.json'
-import * as config from '@/Config/Config.json'
-import * as db from '@/Config/DBConfig.json'
 import { argv } from '@/App'
-import env, { IPCEvents } from '@/Config/Constants'
+import C, { IPCEvents } from '@/Config/Constants'
 import { Instance } from '@/App/Structs/Shard.Struct'
 import { Command } from '@/App/Structs/Command.Struct'
-import { RedisClient } from '@/App/Structs/Redis.Struct'
+// import { RedisClient } from '@/App/Structs/Redis.Struct'
 import { Process, MILLISECONDS_A_SECOND } from '@/App/Utils'
 import { Console } from '@/Tools'
 
@@ -41,12 +39,13 @@ class Shard {
   private isRedisReady: boolean
   */
   private instance: Instance
-  private Redis: RedisClient
+  // private Redis: RedisClient
   private Cycle: NodeJS.Timeout
   private debugCycle: NodeJS.Timeout
 
   public constructor() {
-    Process.setTitle(`${env.botName} v${pkg.version} - ${process.pid}`)
+    shardLog.debug(process.env)
+    Process.setTitle(`${C.botName} v${pkg.version} - ${process.pid}`)
 
     this.isExistsShard()
       .then(() => {
@@ -58,24 +57,23 @@ class Shard {
           messageCacheLifetime: 120,
           messageSweepInterval: 120
         })
-        this.instance.login(config.Discord.token)
+        this.instance.login(process.env.BOT_TOKEN)
         this.instance.receivedData = new Map()
         this.instance.commands = new Discord.Collection()
-        this.Redis = Redis.createClient(db.RedisDBPort, db.RedisDBHost, {
-          db: db.RedisDBName
-        })
         this.loadConnection()
         this.loadCommand()
         this.bindEvent()
       })
+      /*
       .then(() => {
         try {
           promisifyAll(Redis.RedisClient.prototype)
           promisifyAll(Redis.Multi.prototype)
         } catch {
-          /** uwu */
+          // uwu *
         }
       })
+      */
       .catch(shardLog.error)
   }
 
@@ -93,10 +91,10 @@ class Shard {
     fileLikeArray: string[] = []
   ): string[] => {
     // @see https://gist.github.com/kethinov/6658166
-    const files = readdirSync(dir)
+    const files = fs.readdirSync(dir)
 
     files.forEach(file => {
-      if (statSync(`${dir}/${file}`).isDirectory()) {
+      if (fs.statSync(`${dir}/${file}`).isDirectory()) {
         fileLikeArray = this.walkSync(join(dir, file), fileLikeArray)
       } else {
         fileLikeArray.push(join(dir, file))
@@ -128,7 +126,7 @@ class Shard {
     */
 
     this.createCycle()
-    if (argv.has('enable-debug') || env.enableDebug) {
+    if (argv.has('enable-debug') || C.enableDebug) {
       this.createDebugCycle()
     }
     this.emit(IPCEvents.SHARDREADY)
@@ -140,7 +138,7 @@ class Shard {
 
   private readonly loadConnection = () => {
     // tslint:disable-next-line:prefer-conditional-expression
-    if (env.useRedis) {
+    if (C.useRedis) {
       this.instance.Connections = new Map()
     } else {
       this.instance.Connections = new Map()
@@ -159,7 +157,7 @@ class Shard {
     commandFiles.forEach(file => {
       const command = require(file).default as Command
 
-      command.initialise(this.instance, this.Redis)
+      command.initialise(this.instance /* this.Redis */)
       command.aliases.unshift(command.cmds)
       command.aliases.forEach(cmd => {
         this.instance.commands.set(cmd, command)
@@ -172,14 +170,14 @@ class Shard {
     // or, ignore all messages that not start with command prefix
     if (
       !this.isReady ||
-      !message.content.startsWith(config.Discord.commandPrefix) ||
+      !message.content.startsWith(process.env.BOT_PREFIX) ||
       message.author.bot
     ) {
       return
     }
 
     const args = message.cleanContent
-      .slice(config.Discord.commandPrefix.length)
+      .slice(process.env.BOT_PREFIX.length)
       .trim()
       .split(/\s+/g)
     const command = args.shift().toLowerCase()
@@ -219,6 +217,7 @@ class Shard {
   // private readonly onMessageDelete = async()
 
   private readonly syncRedis = async () => {
+    /*
     if (env.useRedis) {
       await this.Redis.set(
         `SHARD_${this.shardId}_GUILD_SIZE`,
@@ -231,6 +230,7 @@ class Shard {
           .reduce((prev, cnt) => prev + cnt)}`
       )
     }
+    */
   }
 
   private readonly emit = (eventUniqueID: IPCEvents) => {
@@ -249,8 +249,8 @@ class Shard {
     this.instance.on('warn', shardLog.warn)
     this.instance.on('error', shardLog.error)
 
-    this.Redis.on('warn', shardLog.warn)
-    this.Redis.on('error', shardLog.error)
+    // this.Redis.on('warn', shardLog.warn)
+    // this.Redis.on('error', shardLog.error)
 
     process.on(IPCEvents.SHUTDOWN as any, this.shutdown)
     process.on(IPCEvents.FORCE_SHUTDOWN as any, this.shutdown)
@@ -277,8 +277,8 @@ class Shard {
     clearInterval(this.Cycle)
     clearInterval(this.debugCycle)
 
-    if (env.useRedis) {
-      await this.Redis.quitAsync()
+    if (C.useRedis) {
+      // await this.Redis.quitAsync()
     }
 
     try {

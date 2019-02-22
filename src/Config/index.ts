@@ -5,67 +5,40 @@ import * as dotEnv from 'dotenv'
 import { argv } from '@/App'
 import { Console } from '@/Tools'
 
+const envPath = 'src/Config/.env'
 const configLog = Console('[Config]')
-const getEnvPath = (env: string) => `src/Config/${env}.env`
-const ConfigFile = 'src/Config/Config.json'
 
 export const Config = {
   initialise() {
-    Config.createConfigIfNotExists()
-    Config.setProcessEnviroment()
-  },
-
-  createConfigIfNotExists() {
-    const isExists = fs.existsSync(resolve(ConfigFile))
-
-    if (!isExists) {
-      const defaultOptions = {
-        token: 'your token'
-      }
-
-      fs.writeFileSync(
-        resolve(ConfigFile),
-        JSON.stringify(defaultOptions, null, 2),
-        {
-          encoding: 'utf-8'
-        }
-      )
-
-      configLog.log(
-        'Configuration file not found. ' +
-          "'Config.json' files is created at src/Config. " +
-          'Modify that to yours and then restart me'
-      )
-    }
-  },
-
-  setProcessEnviroment() {
     if (!process.env.NODE_ENV) {
       if (!argv.has('env')) {
-        Config.setFullEnviroment('development')
-
-        // prettier-ignore
-        configLog.warn('NODE_ENV could not found at enviroment path or cli arguments!')
-        configLog.warn("Automatically NODE_ENV set to 'development'")
+        configLog.warn(
+          "Could not found 'NODE_ENV' in environment variable or cli argument"
+        )
       } else {
         const env = argv.get('env')
+        const validEnvName = 'development' || 'production' || 'test' || 'debug'
 
-        if (env !== ('development' || 'production')) {
+        if (env !== validEnvName) {
           configLog.warn(
-            'Unknown NODE_ENV detected at cli arguments. ' +
+            'Unkown Node_ENV detected in cli argument. ' +
               'This can cause unexpected problems in the future'
           )
         }
-
-        Config.setFullEnviroment(env)
       }
-    } else {
-      Config.setFullEnviroment(process.env.NODE_ENV)
     }
-  },
 
-  setFullEnviroment(envPath: string) {
-    process.env = dotEnv.config({ path: resolve(getEnvPath(envPath)) }).parsed
-    process.env.NODE_ENV = envPath
+    if (fs.existsSync(envPath)) {
+      const parsedEnv = dotEnv.config({ path: resolve('src/Config/.env') })
+        .parsed
+
+      process.env = parsedEnv
+      process.env.NODE_ENV =
+        process.env.NODE_ENV ||
+        (argv.has('env') ? argv.get('env') : 'development')
+    } else {
+      configLog.error('Could not found env file')
+      throw new Error('Could not found env file')
+    }
   }
 }

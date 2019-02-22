@@ -13,6 +13,7 @@
     "no-console": false,
     "no-angle-bracket-type-assertion": false,
     "no-empty-interface": false,
+    "no-floating-promises": false,
     "no-implicit-dependencies": false,
     "no-submodule-imports": false,
     "interface-name": false,

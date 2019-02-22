@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "sayabot",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Simplest way to start Discord bot is using Sayabot",
   "engines": {
     "node": ">= 8"

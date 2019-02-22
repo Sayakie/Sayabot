@@ -4,7 +4,7 @@ import env from '@/Config/Constants'
 
 import { Instance } from './Shard.Struct'
 import { Permission } from './Permission.Struct'
-import { RedisClient } from './Redis.Struct'
+// import { RedisClient } from './Redis.Struct'
 
 export const enum Group {
   Administrative = 'administrative',
@@ -17,7 +17,7 @@ export abstract class Command {
   public instance: Instance
 
   /** Redis */
-  public Redis: RedisClient
+  // public Redis: RedisClient
 
   /** Received message */
   public message: Discord.Message
@@ -57,10 +57,9 @@ export abstract class Command {
 
   public isEnable: boolean
 
-  public initialise(instance: Instance, Redis: RedisClient) {
+  public initialise(instance: Instance) {
     this.instance = instance
     this.aliases = []
-    this.Redis = Redis
     this.isEnable = true
   }
 

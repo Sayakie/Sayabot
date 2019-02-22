@@ -4,7 +4,7 @@ import { cpus } from 'os'
 import { join } from 'path'
 
 import * as pkg from 'package.json'
-import env, { IPCEvents } from '@/Config/Constants'
+import C, { IPCEvents } from '@/Config/Constants'
 import { Process } from '@/App/Utils'
 import { Config } from '@/Config'
 import { Console } from '@/Tools'
@@ -37,22 +37,22 @@ const getPureArguments = () => {
   // Remove two factors from argv that never need
   process.argv.splice(0, 2)
   process.argv
-    .filter(arg => arg.match(/^-(?!-)/))
-    .map(arg => {
+    .filter(arg => arg.match(/^-(!-)/))
+    .forEach(arg => {
       process.argv.splice(process.argv.indexOf(arg, 1), 1)
 
       PureArguments.set(arg.slice(1), true)
     })
   process.argv
     .filter(arg => arg.includes('--'))
-    .map((_, i) =>
+    .forEach((_, i) =>
       PureArguments.set(process.argv[i * 2].slice(2), process.argv[++i * 2 - 1])
     )
 
   return PureArguments
 }
 
-const getClusters = (): number => {
+const getClusters = () => {
   const MAX_WORKERS = cpus().length
 
   if (argv.has('enable-clusters')) {
@@ -70,10 +70,10 @@ const getClusters = (): number => {
     }
 
     return MAX_WORKERS
-  } else if (env.useCluster) {
+  } else if (C.useCluster) {
     // tslint:disable-next-line:no-extra-boolean-cast
-    if (!!env.Clusters) {
-      return +env.Clusters
+    if (!!C.Clusters) {
+      return +C.Clusters
     }
 
     return MAX_WORKERS
@@ -86,20 +86,22 @@ export const argv = getPureArguments()
 export const numClusters = getClusters()
 
 export const App = {
+  /*
   closedClusters: 0,
   lastestCluster: null as Cluster.Worker,
   Clusters: [] as Cluster.Worker[],
+  */
 
   start() {
-    const commonInfo = `${env.botName} v${pkg.version}`
+    const commonInfo = `${C.botName} v${pkg.version}`
     coreLog.log(`Start ${commonInfo}`)
     coreLog.log(argv)
 
     Process.setTitle(commonInfo)
     Config.initialise()
+    App.initCluster()
     App.bindEvent()
     App.bindClusterEvent()
-    App.initCluster()
 
     process.emit(IPCEvents.READY as any)
   },
@@ -143,16 +145,16 @@ export const App = {
     })
 
     process.on(IPCEvents.BROADCAST as any, App.broadcast)
-    process.on(IPCEvents.SHUTDOWN as any, App.harmonyExit)
-    process.on(IPCEvents.FORCE_SHUTDOWN as any, App.harmonyExit)
+    process.on(IPCEvents.SHUTDOWN as any, App.shutdown)
+    process.on(IPCEvents.FORCE_SHUTDOWN as any, App.shutdown)
 
-    process.once('SIGTERM', App.harmonyExit)
-    process.once('SIGINT', App.harmonyExit)
-    process.once('SIGUSR1', App.harmonyExit)
-    process.once('SIGUSR2', App.harmonyExit)
+    process.once('SIGTERM', App.shutdown)
+    process.once('SIGINT', App.shutdown)
+    process.once('SIGUSR1', App.shutdown)
+    process.once('SIGUSR2', App.shutdown)
   },
 
-  harmonyExit() {
+  shutdown() {
     for (const pid in Cluster.workers) {
       try {
         Cluster.workers[pid].destroy()

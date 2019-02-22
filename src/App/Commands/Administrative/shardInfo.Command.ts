@@ -1,4 +1,3 @@
-import * as Discord from 'discord.js'
 import { Command, Group } from '@/App/Structs/Command.Struct'
 import { Console } from '@/Tools'
 

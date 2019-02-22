@@ -1,13 +1,7 @@
 // @ts-check
 // tslint:disable
-const isMatch = (x: any) => ({
-  on: () => isMatch(x),
-  otherwise: () => x
-})
+const net = require('net')
 
-const bindCommand = (x: string) => ({
-  on: (pred: any, fn: any): any => (pred(x) ? isMatch(fn(x)) : bindCommand(x)),
-  otherwise: (fn: any) => fn(x)
+const Client = net.connect({ port: 8107, host: 'localhost' }, () => {
+  console.log('Connected')
 })
-
-bindCommand('sing')

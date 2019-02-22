@@ -1,5 +1,0 @@
-{
-  "RedisDBName": "redis",
-  "RedisDBPort": 6379,
-  "RedisDBHost": "127.0.0.1"
-}

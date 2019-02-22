@@ -2,6 +2,9 @@ import chalk from 'chalk'
 import * as dayjs from 'dayjs'
 import { inspect } from 'util'
 
+import { argv } from '@/App'
+import C from '@/Config/Constants'
+
 const inspectOptions: NodeJS.InspectOptions = {
   colors: true,
   depth: null
@@ -10,7 +13,8 @@ const inspectOptions: NodeJS.InspectOptions = {
 const enum TYPE {
   INFO = 'INFO',
   WARN = 'WARN',
-  ERROR = 'ERR!'
+  ERROR = 'ERR!',
+  DEBUG = 'DEBUG'
 }
 
 class Console {
@@ -56,6 +60,15 @@ class Console {
     message?: any,
     ...optionalParams: any[]
   ) => Console.out(chalk.red(TYPE.ERROR), atPoint, message, ...optionalParams)
+  public static readonly debug = (
+    atPoint: string,
+    message?: any,
+    ...optionalParams: any[]
+  ) => {
+    if (argv.has('enable-debug') || C.enableDebug) {
+      Console.out(chalk.blue(TYPE.DEBUG), atPoint, message, ...optionalParams)
+    }
+  }
 
   public static readonly log = Console.info
 }
@@ -72,5 +85,8 @@ export const ConsoleBuilder = (prefix: string) => ({
   },
   error(message?: any, ...optionalParams: any[]) {
     Console.error(chalk.yellow(prefix), message, ...optionalParams)
+  },
+  debug(message?: any, ...optionalParams: any[]) {
+    Console.debug(chalk.yellow(prefix), message, ...optionalParams)
   }
 })
