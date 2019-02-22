@@ -53,7 +53,7 @@ const getPureArguments = () => {
 }
 
 const getClusters = () => {
-  const MAX_WORKERS = cpus().length
+  const MAX_WORKERS = +process.env.NUMBER_OF_PROCESSORS || cpus().length
 
   if (argv.has('enable-clusters')) {
     if (argv.has('clusters')) {
@@ -129,19 +129,21 @@ export const App = {
       coreLog.log(`Cluster [PID: ${Worker.process.pid}] has started.`)
     })
 
-    Cluster.on('exit', (Worker: Cluster, Code, Signal) => {
+    Cluster.on('exit', (Worker: Cluster, Code) => {
       if (Code === 0) return
 
-      // prettier-ignore
-      coreLog.log(`Cluster [PID: ${Worker.process.pid}] has been shutdown abnormally. Received ${Signal} signal.`)
+      coreLog.log(
+        `Cluster [PID: ${Worker.process.pid}] has been shutdown abnormally.`
+      )
     })
   },
 
   bindEvent() {
     process.on('uncaughtException', Error => coreLog.error(Error.stack))
     process.on('unhandledRejection', (reason, position) => {
-      // prettier-ignore
-      coreLog.error(`Occured unhandled rejection at: ${position} because of ${reason}`)
+      coreLog.error(
+        `Occured unhandled rejection at: ${position} because of ${reason}`
+      )
     })
 
     process.on(IPCEvents.BROADCAST as any, App.broadcast)

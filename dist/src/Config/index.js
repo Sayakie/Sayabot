@@ -5,50 +5,39 @@ const path_1 = require("path");
 const dotEnv = require("dotenv");
 const App_1 = require("@/App");
 const Tools_1 = require("@/Tools");
+const envPath = 'src/Config/.env';
+const validEnvName = 'development' || 'production' || 'test' || 'debug';
 const configLog = Tools_1.Console('[Config]');
-const getEnvPath = (env) => `src/Config/${env}.env`;
-const ConfigFile = 'src/Config/Config.json';
 exports.Config = {
     initialise() {
-        exports.Config.createConfigIfNotExists();
-        exports.Config.setProcessEnviroment();
-    },
-    createConfigIfNotExists() {
-        const isExists = fs.existsSync(path_1.resolve(ConfigFile));
-        if (!isExists) {
-            const defaultOptions = {
-                token: 'your token'
-            };
-            fs.writeFileSync(path_1.resolve(ConfigFile), JSON.stringify(defaultOptions, null, 2), {
-                encoding: 'utf-8'
-            });
-            configLog.log('Configuration file not found. ' +
-                "'Config.json' files is created at src/Config. " +
-                'Modify that to yours and then restart me');
-        }
-    },
-    setProcessEnviroment() {
         if (!process.env.NODE_ENV) {
-            if (!App_1.App.argv.has('env')) {
-                exports.Config.setFullEnviroment('development');
-                configLog.warn('NODE_ENV could not found at enviroment path or cli arguments!');
-                configLog.warn("Automatically NODE_ENV set to 'development'");
+            if (!App_1.argv.has('env')) {
+                configLog.warn("Could not found 'NODE_ENV' in environment variable or cli argument");
             }
             else {
-                const env = App_1.App.argv.get('env');
-                if (env !== ('development' || 'production')) {
-                    configLog.warn('Unknown NODE_ENV detected at cli arguments. ' +
+                const env = App_1.argv.get('env');
+                if (env !== validEnvName) {
+                    configLog.warn('Unkown Node_ENV detected in cli argument. ' +
                         'This can cause unexpected problems in the future');
                 }
-                exports.Config.setFullEnviroment(env);
             }
         }
-        else {
-            exports.Config.setFullEnviroment(process.env.NODE_ENV);
+        if (fs.existsSync(envPath)) {
+            const parsedEnv = dotEnv.config({
+                path: path_1.resolve('src/Config/.env')
+            });
+            if (parsedEnv.error) {
+                throw new Error('Failed to parse env file');
+            }
+            process.env = parsedEnv.parsed;
+            process.env.NODE_ENV =
+                process.env.NODE_ENV ||
+                    (App_1.argv.has('env') ? App_1.argv.get('env') : 'development');
+            configLog.debug(process.env);
         }
-    },
-    setFullEnviroment(envPath) {
-        process.env = dotEnv.config({ path: path_1.resolve(getEnvPath(envPath)) }).parsed;
-        process.env.NODE_ENV = envPath;
+        else {
+            configLog.error('Could not found env file');
+            throw new Error('Could not found env file');
+        }
     }
 };

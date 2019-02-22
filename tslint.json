@@ -4,9 +4,7 @@
     "tslint-config-standard",
     "tslint-config-prettier"
   ],
-  "linterOptions": {
-    "exclude": ["node_modules"]
-  },
+  "rulesDirectory": ["src"],
   "rules": {
     "semicolon": [false, "never"],
     "ordered-imports": false,

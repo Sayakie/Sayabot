@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const chalk_1 = require("chalk");
 const dayjs = require("dayjs");
 const util_1 = require("util");
+const App_1 = require("@/App");
+const Constants_1 = require("@/Config/Constants");
 const inspectOptions = {
     colors: true,
     depth: null
@@ -15,13 +17,18 @@ Console.out = (consoleType, atPoint, message, ...optionalParams) => {
         return;
     }
     const consoleDate = dayjs().format('YYYY-MM-DD HH:mm:ss.SSS');
-    const processUptime = +process.uptime().toFixed(3);
+    const processUptime = process.uptime().toFixed(3);
     const processID = process.pid;
     console.log(consoleDate, processUptime, processID, consoleType, atPoint, typeof message === 'object' ? util_1.inspect(message, inspectOptions) : message, ...optionalParams);
 };
 Console.info = (atPoint, message, ...optionalParams) => Console.out(chalk_1.default.green("INFO"), atPoint, message, ...optionalParams);
 Console.warn = (atPoint, message, ...optionalParams) => Console.out(chalk_1.default.yellow("WARN"), atPoint, message, ...optionalParams);
 Console.error = (atPoint, message, ...optionalParams) => Console.out(chalk_1.default.red("ERR!"), atPoint, message, ...optionalParams);
+Console.debug = (atPoint, message, ...optionalParams) => {
+    if (App_1.argv.has('enable-debug') || Constants_1.default.enableDebug) {
+        Console.out(chalk_1.default.blue("DEBUG"), atPoint, message, ...optionalParams);
+    }
+};
 Console.log = Console.info;
 exports.ConsoleBuilder = (prefix) => ({
     log(message, ...optionalParams) {
@@ -35,5 +42,8 @@ exports.ConsoleBuilder = (prefix) => ({
     },
     error(message, ...optionalParams) {
         Console.error(chalk_1.default.yellow(prefix), message, ...optionalParams);
+    },
+    debug(message, ...optionalParams) {
+        Console.debug(chalk_1.default.yellow(prefix), message, ...optionalParams);
     }
 });

@@ -6,6 +6,7 @@ import { argv } from '@/App'
 import { Console } from '@/Tools'
 
 const envPath = 'src/Config/.env'
+const validEnvName = 'development' || 'production' || 'test' || 'debug'
 const configLog = Console('[Config]')
 
 export const Config = {
@@ -17,7 +18,6 @@ export const Config = {
         )
       } else {
         const env = argv.get('env')
-        const validEnvName = 'development' || 'production' || 'test' || 'debug'
 
         if (env !== validEnvName) {
           configLog.warn(
@@ -29,13 +29,20 @@ export const Config = {
     }
 
     if (fs.existsSync(envPath)) {
-      const parsedEnv = dotEnv.config({ path: resolve('src/Config/.env') })
-        .parsed
+      const parsedEnv = dotEnv.config({
+        path: resolve('src/Config/.env')
+      })
 
-      process.env = parsedEnv
+      if (parsedEnv.error) {
+        throw new Error('Failed to parse env file')
+      }
+
+      process.env = parsedEnv.parsed
       process.env.NODE_ENV =
         process.env.NODE_ENV ||
         (argv.has('env') ? argv.get('env') : 'development')
+
+      configLog.debug(process.env)
     } else {
       configLog.error('Could not found env file')
       throw new Error('Could not found env file')

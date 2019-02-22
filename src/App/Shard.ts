@@ -5,7 +5,6 @@ import { join } from 'path'
 // import { promisifyAll } from 'bluebird'
 
 import * as pkg from 'package.json'
-import { argv } from '@/App'
 import C, { IPCEvents } from '@/Config/Constants'
 import { Instance } from '@/App/Structs/Shard.Struct'
 import { Command } from '@/App/Structs/Command.Struct'
@@ -126,14 +125,15 @@ class Shard {
     */
 
     this.createCycle()
-    if (argv.has('enable-debug') || C.enableDebug) {
-      this.createDebugCycle()
-    }
+    this.createDebugCycle()
     this.emit(IPCEvents.SHARDREADY)
     this.isReady = true
 
-    // prettier-ignore
-    shardLog.log(`Logged in as: ${this.instance.user.tag}, with ${this.instance.users.size} users of ${this.instance.guilds.size} servers.`)
+    shardLog.log(
+      `Logged in as: ${this.instance.user.tag}, with ${
+        this.instance.users.size
+      } users of ${this.instance.guilds.size} servers.`
+    )
   }
 
   private readonly loadConnection = () => {
@@ -185,8 +185,11 @@ class Shard {
 
     // Ignore if there are no applicable command
     if (!this.instance.commands.has(command)) {
-      // prettier-ignore
-      shardLog.log(`${message.author.tag} said ${message} but there are no applicable commands. skip it.`)
+      shardLog.log(
+        `${
+          message.author.tag
+        } said ${message} but there are no applicable commands.`
+      )
       /*
       message.channel.send(
         `${message.author.tag}, there are no applicable commands!`
@@ -270,7 +273,7 @@ class Shard {
   private readonly debug = () => {
     const memoryUsed = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)
 
-    shardLog.log(`Used ${memoryUsed} MB`)
+    shardLog.debug(`Used ${memoryUsed} MB`)
   }
 
   private readonly shutdown = async () => {

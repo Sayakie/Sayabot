@@ -4,14 +4,19 @@ const fs = require("fs");
 const Discord = require("discord.js");
 const path_1 = require("path");
 const pkg = require("package.json");
-const config = require("@/Config/Config.json");
 const Constants_1 = require("@/Config/Constants");
-const App_1 = require("@/App");
 const Utils_1 = require("@/App/Utils");
 const Tools_1 = require("@/Tools");
 const { SHARD_ID: shardId, SHARD_COUNT: shardCount } = process.env;
 const shardLog = Tools_1.Console('[Shard]');
-const disabledEvents = ['TYPING_START'];
+const disabledEvents = [
+    'TYPING_START',
+    'CHANNEL_PINS_UPDATE',
+    'USER_NOTE_UPDATE',
+    'USER_SETTINGS_UPDATE',
+    'USER_GUILD_SETTINGS_UPDATE',
+    'VOICE_STATE_UPDATE'
+];
 class Shard {
     constructor() {
         this.shardId = Number.parseInt(shardId, 10);
@@ -44,12 +49,20 @@ class Shard {
         };
         this.ready = () => {
             this.setStatus('online');
-            this.setActivity(`${this.instance.users.size} Users`, {
-                url: 'https://sayakie.com',
-                type: 'LISTENING'
-            });
-            process.send(4);
+            this.setActivity('Connect to ');
+            this.createCycle();
+            this.createDebugCycle();
+            this.emit(4);
+            this.isReady = true;
             shardLog.log(`Logged in as: ${this.instance.user.tag}, with ${this.instance.users.size} users of ${this.instance.guilds.size} servers.`);
+        };
+        this.loadConnection = () => {
+            if (Constants_1.default.useRedis) {
+                this.instance.Connections = new Map();
+            }
+            else {
+                this.instance.Connections = new Map();
+            }
         };
         this.loadCommand = () => {
             const commandDir = path_1.join(`${__dirname}/Commands`);
@@ -65,53 +78,73 @@ class Shard {
             });
         };
         this.onMessage = async (message) => {
-            if (message.author.bot ||
-                message.content.indexOf(config.commandPrefix) !== 0) {
+            if (!this.isReady ||
+                !message.content.startsWith(process.env.BOT_PREFIX) ||
+                message.author.bot) {
                 return;
             }
-            const raw = message.cleanContent.slice(config.commandPrefix.length).trim().split(/\s+/g);
-            const command = raw.shift().toLowerCase();
-            const receivedData = { message, raw };
+            const args = message.cleanContent
+                .slice(process.env.BOT_PREFIX.length)
+                .trim()
+                .split(/\s+/g);
+            const command = args.shift().toLowerCase();
+            const receivedData = { message, args };
             if (!this.instance.commands.has(command)) {
-                shardLog.log(`${message.author.tag} said ${message} but there are no applicable commands. skip it.`);
-                message.channel.send(`${message.author.tag}, there are no applicable commands!`);
+                shardLog.log(`${message.author.tag} said ${message} but there are no applicable commands.`);
                 return;
             }
             for (const key of Object.keys(receivedData)) {
                 this.instance.receivedData.set(key, receivedData[key]);
             }
             try {
-                await this.instance.commands.get(command).run();
+                await this.instance.commands
+                    .get(command)
+                    .inspect()
+                    .run();
             }
             catch (error) {
-                await message.channel.send('There ware an error while try to run that command!');
+                await message.channel.send('There was an error while try to run that command!');
                 shardLog.error(`The following command could not be executed, because of ${error}`);
             }
         };
-        this.fetchGuild = () => {
-            App_1.App.Redis.set(`SHARD_${this.shardId}_GUILD`, this.instance.guilds.size);
+        this.syncRedis = async () => {
+        };
+        this.emit = (eventUniqueID) => {
+            process.send(eventUniqueID);
         };
         this.bindEvent = () => {
             this.instance.once('ready', this.ready);
             this.instance.on('message', this.onMessage);
-            process.on('message', (cmd) => process.emit(cmd));
-            process.on('SIGTERM', () => {
-            });
-            process.on('SIGINT', () => {
-            });
-            process.on('SIGUSR1', () => {
-            });
-            process.on('SIGUSR2', () => {
-            });
-            process.on(14, this.fetchGuild);
+            this.instance.on('warn', shardLog.warn);
+            this.instance.on('error', shardLog.error);
             process.on(9, this.shutdown);
-            process.on(8, () => this.shutdown(8));
+            process.on(8, this.shutdown);
+            process.on('message', (cmd) => process.emit(cmd));
+            process.on('SIGINT', this.shutdown);
         };
-        this.shutdown = async (Events = 9) => {
-            await this.instance.destroy();
-            process.send(Events);
-            process.exit(0);
+        this.createCycle = () => {
+            this.Cycle = setInterval(this.syncRedis, 30 * Utils_1.MILLISECONDS_A_SECOND);
         };
+        this.createDebugCycle = () => {
+            this.debugCycle = setInterval(this.debug, 5 * Utils_1.MILLISECONDS_A_SECOND);
+        };
+        this.debug = () => {
+            const memoryUsed = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
+            shardLog.debug(`Used ${memoryUsed} MB`);
+        };
+        this.shutdown = async () => {
+            clearInterval(this.Cycle);
+            clearInterval(this.debugCycle);
+            if (Constants_1.default.useRedis) {
+            }
+            try {
+                await this.instance.destroy();
+            }
+            catch (err) {
+                shardLog.error(err);
+            }
+        };
+        shardLog.debug(process.env);
         Utils_1.Process.setTitle(`${Constants_1.default.botName} v${pkg.version} - ${process.pid}`);
         this.isExistsShard()
             .then(() => {
@@ -123,9 +156,10 @@ class Shard {
                 messageCacheLifetime: 120,
                 messageSweepInterval: 120
             });
-            this.instance.login(config.token);
+            this.instance.login(process.env.BOT_TOKEN);
             this.instance.receivedData = new Map();
             this.instance.commands = new Discord.Collection();
+            this.loadConnection();
             this.loadCommand();
             this.bindEvent();
         })
