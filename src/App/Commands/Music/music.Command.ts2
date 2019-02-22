@@ -23,7 +23,7 @@ class Music extends Command {
     const Connection = this.instance.Connections
     const GuildID = this.message.guild.id
 
-    Player.emit(this.args[1])
+    Player.emit(this.args[0])
     /*
     if (Connection.has(GuildID)) {
       const voiceConnection = Connection.get(GuildID)

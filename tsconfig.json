@@ -4,7 +4,7 @@
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "alwaysStrict": true,
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "module": "commonjs",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
@@ -13,15 +13,16 @@
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "outDir": "./dist",
+    "outDir": "dist",
     "paths": {
-      "*": ["../*"],
-      "@/*": ["./*"]
+      "@/*": ["./src/*"]
     },
     "pretty": true,
+    "preserveConstEnums": true,
     "removeComments": true,
     "resolveJsonModule": true,
-    "target": "es2017",
+    "rootDir": "./src",
+    "target": "es2018",
     "typeRoots": ["./node_modules/@types", "./src/@types"]
   },
   "include": ["src/**/*"],

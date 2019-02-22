@@ -1,12 +1,11 @@
 import * as fs from 'fs'
-import { resolve } from 'path'
+import { join } from 'path'
 import * as dotEnv from 'dotenv'
 
 import { argv } from '@/App'
 import { Console } from '@/Tools'
 
-const envPath = 'src/Config/.env'
-const validEnvName = 'development' || 'production' || 'test' || 'debug'
+const envPath = join(`${__dirname}/.env`)
 const configLog = Console('[Config]')
 
 export const Config = {
@@ -19,10 +18,10 @@ export const Config = {
       } else {
         const env = argv.get('env')
 
-        if (env !== validEnvName) {
+        if (env !== ('development' || 'production' || 'test' || 'debug')) {
           configLog.warn(
-            'Unkown Node_ENV detected in cli argument. ' +
-              'This can cause unexpected problems in the future'
+            'Unkown Node_ENV detected in cli argument.',
+            'This can cause unexpected problems in the future'
           )
         }
       }
@@ -30,7 +29,7 @@ export const Config = {
 
     if (fs.existsSync(envPath)) {
       const parsedEnv = dotEnv.config({
-        path: resolve('src/Config/.env')
+        path: envPath
       })
 
       if (parsedEnv.error) {
@@ -41,8 +40,6 @@ export const Config = {
       process.env.NODE_ENV =
         process.env.NODE_ENV ||
         (argv.has('env') ? argv.get('env') : 'development')
-
-      configLog.debug(process.env)
     } else {
       configLog.error('Could not found env file')
       throw new Error('Could not found env file')

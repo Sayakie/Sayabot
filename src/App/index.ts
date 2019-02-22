@@ -1,21 +1,43 @@
+// import * as readline from 'readline'
+import * as fs from 'fs'
 import * as Cluster from 'cluster'
 import { ChildProcess } from 'child_process'
 import { cpus } from 'os'
 import { join } from 'path'
 
-import * as pkg from 'package.json'
-import C, { IPCEvents } from '@/Config/Constants'
+import C, { pkg, IPCEvents, PromptEvents } from '@/Config/Constants'
 import { Process } from '@/App/Utils'
 import { Config } from '@/Config'
 import { Console } from '@/Tools'
 
+// let Prompt: readline.Interface
 const coreLog = Console('[Core]')
 
 // To run via typescript
 if (Cluster.isMaster) {
-  const execArgv = ['-r', 'tsconfig-paths/register', '-r', 'ts-node/register']
-  const exec = join(`${__dirname}/Shard.ts`)
-  Cluster.setupMaster({ execArgv, exec })
+  if (fs.existsSync(join(`${__dirname}/Shard.ts`))) {
+    const execArgv = ['-r', 'tsconfig-paths/register', '-r', 'ts-node/register']
+    const exec = join(`${__dirname}/Shard.ts`)
+    Cluster.setupMaster({ execArgv, exec, inspectPort: 1320 })
+  } else {
+    const exec = join(`${__dirname}/Shard.js`)
+    Cluster.setupMaster({ exec })
+  }
+
+  /*
+  Prompt = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  })
+
+  Prompt.setPrompt('> ')
+  Prompt.on('line', line => {
+    coreLog.log(line.toUpperCase())
+    process.emit(line.toUpperCase() as any)
+    Prompt.prompt()
+  })
+  Prompt.once('close', () => process.emit(PromptEvents.EXIT as any))
+  */
 }
 
 export interface Broadcast {
@@ -44,7 +66,7 @@ const getPureArguments = () => {
       PureArguments.set(arg.slice(1), true)
     })
   process.argv
-    .filter(arg => arg.includes('--'))
+    .filter(arg => arg.startsWith('--'))
     .forEach((_, i) =>
       PureArguments.set(process.argv[i * 2].slice(2), process.argv[++i * 2 - 1])
     )
@@ -118,7 +140,10 @@ export const App = {
     coreLog.log('Initialise the shards')
 
     for (let clusterID = 0; clusterID < numClusters; clusterID++) {
-      const clusterEnv = { SHARD_ID: clusterID, SHARD_COUNT: numClusters }
+      const clusterEnv = {
+        SHARD_ID: clusterID,
+        SHARD_COUNT: numClusters
+      }
 
       Cluster.fork(clusterEnv)
     }
@@ -149,6 +174,7 @@ export const App = {
     process.on(IPCEvents.BROADCAST as any, App.broadcast)
     process.on(IPCEvents.SHUTDOWN as any, App.shutdown)
     process.on(IPCEvents.FORCE_SHUTDOWN as any, App.shutdown)
+    process.on(PromptEvents.EXIT as any, App.shutdown)
 
     process.once('SIGTERM', App.shutdown)
     process.once('SIGINT', App.shutdown)

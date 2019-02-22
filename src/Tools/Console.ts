@@ -2,8 +2,8 @@ import chalk from 'chalk'
 import * as dayjs from 'dayjs'
 import { inspect } from 'util'
 
-import { argv } from '@/App'
-import C from '@/Config/Constants'
+// import { argv } from '@/App'
+// import C from '@/Config/Constants'
 
 const inspectOptions: NodeJS.InspectOptions = {
   colors: true,
@@ -64,11 +64,7 @@ class Console {
     atPoint: string,
     message?: any,
     ...optionalParams: any[]
-  ) => {
-    if (argv.has('enable-debug') || C.enableDebug) {
-      Console.out(chalk.blue(TYPE.DEBUG), atPoint, message, ...optionalParams)
-    }
-  }
+  ) => Console.out(chalk.blue(TYPE.DEBUG), atPoint, message, ...optionalParams)
 
   public static readonly log = Console.info
 }

@@ -1,4 +1,4 @@
-import * as pkg from 'package.json'
+import { pkg } from '@/Config/Constants'
 import { Command, Group } from '@/App/Structs/Command.Struct'
 
 const embed = (literal: TemplateStringsArray, ...args: any[]) =>

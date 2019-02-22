@@ -18,5 +18,8 @@
     "member-ordering": false,
     "object-literal-sort-keys": false,
     "forin": false
+  },
+  "linterOptions": {
+    "exclude": ["node_modules", "dist"]
   }
 }

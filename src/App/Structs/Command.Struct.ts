@@ -1,10 +1,11 @@
 import * as Discord from 'discord.js'
 
-import env from '@/Config/Constants'
-
 import { Instance } from './Shard.Struct'
 import { Permission } from './Permission.Struct'
 // import { RedisClient } from './Redis.Struct'
+
+// TODO: Functional -> 권한 있는지 확인하기
+const reviewBot = ''
 
 export const enum Group {
   Administrative = 'administrative',
@@ -43,6 +44,12 @@ export abstract class Command {
   /** The group name of the command belongs to */
   public group: string
 
+  /** The privileges of the command to perform for user */
+  public userRequirePermissions: Permission[]
+
+  /** The privileges of the command to perform for bot */
+  public botRequirePermissions: Permission[]
+
   /** Whether the command only be run in a guild channel */
   public guildOnly: boolean
 
@@ -55,12 +62,15 @@ export abstract class Command {
   /** Whether the command should be hidden from the help command */
   public hidden: boolean
 
-  public isEnable: boolean
+  protected constructor() {
+    this.aliases = []
+    this.userRequirePermissions = []
+    this.botRequirePermissions = []
+  }
 
+  /**  */
   public initialise(instance: Instance) {
     this.instance = instance
-    this.aliases = []
-    this.isEnable = true
   }
 
   /** Hide this command from the help command */
@@ -68,36 +78,62 @@ export abstract class Command {
     this.hidden = true
   }
 
-  protected disable() {
-    this.isEnable = false
-  }
-
-  public isOwner(): boolean {
-    if (env.owners.includes(this.message.member.id)) {
-      return true
-    }
-
-    return false
-  }
-
-  public hasPermission(PermissionType: Permission): boolean {
-    if (this.message.member.hasPermission(PermissionType)) {
-      return true
-    }
-
-    return false
-  }
-
   public inspect() {
     this.message = this.instance.receivedData.get('message') as Discord.Message
     this.args = this.instance.receivedData.get('args') as string[]
 
-    if (this.guildOnly && this.message.guild === null) {
-      console.log('빼액')
-      this.disable()
+    const botStats = {
+      hasPerms: true,
+      missPerms: [] as string[]
     }
 
-    return this
+    this.botRequirePermissions.forEach(Privilege => {
+      const hasPrivilege = (this.message.channel as Discord.TextChannel)
+        .permissionsFor(this.message.guild.member(this.instance.user))
+        .has(Privilege)
+
+      if (!hasPrivilege) {
+        botStats.hasPerms = false
+        botStats.missPerms.push(`\`${Privilege}\``)
+      }
+    })
+  }
+  public async inspect2(): Promise<this> {
+    this.message = this.instance.receivedData.get('message') as Discord.Message
+    this.args = this.instance.receivedData.get('args') as string[]
+
+    return new Promise((resolve, reject) => {
+      const botStats = {
+        hasPerms: true,
+        missPerms: [] as string[]
+      }
+      this.botRequirePermissions.forEach(privilege => {
+        const hasPrivilege = (this.message.channel as Discord.TextChannel)
+          .permissionsFor(this.message.guild.member(this.instance.user))
+          .has(privilege)
+
+        if (!hasPrivilege) {
+          botStats.hasPerms = false
+          botStats.missPerms.push(`\`${privilege}\``)
+        }
+      })
+
+      if (!botStats.hasPerms) {
+        this.message.channel.send(
+          `I was unable to proceed that command because I lack the permission(s): ${botStats.missPerms.join(
+            ', '
+          )}`
+        )
+
+        reject(
+          `Could not proceed some command because the bot does not have permission(s): ${botStats.missPerms.join(
+            ', '
+          )}`
+        )
+      }
+
+      resolve(this)
+    })
   }
 
   /** Runs the command */

@@ -4,8 +4,7 @@ import * as Discord from 'discord.js'
 import { join } from 'path'
 // import { promisifyAll } from 'bluebird'
 
-import * as pkg from 'package.json'
-import C, { IPCEvents } from '@/Config/Constants'
+import C, { pkg, IPCEvents } from '@/Config/Constants'
 import { Instance } from '@/App/Structs/Shard.Struct'
 import { Command } from '@/App/Structs/Command.Struct'
 // import { RedisClient } from '@/App/Structs/Redis.Struct'
@@ -43,7 +42,6 @@ class Shard {
   private debugCycle: NodeJS.Timeout
 
   public constructor() {
-    shardLog.debug(process.env)
     Process.setTitle(`${C.botName} v${pkg.version} - ${process.pid}`)
 
     this.isExistsShard()
@@ -190,11 +188,6 @@ class Shard {
           message.author.tag
         } said ${message} but there are no applicable commands.`
       )
-      /*
-      message.channel.send(
-        `${message.author.tag}, there are no applicable commands!`
-      )
-      */
       return
     }
 
@@ -208,12 +201,7 @@ class Shard {
         .inspect()
         .run()
     } catch (error) {
-      await message.channel.send(
-        'There was an error while try to run that command!'
-      )
-      shardLog.error(
-        `The following command could not be executed, because of ${error}`
-      )
+      shardLog.error(error)
     }
   }
 

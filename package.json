@@ -17,12 +17,15 @@
   },
   "license": "GPL-3.0",
   "scripts": {
-    "start": "node dist/src/index.js --env production",
+    "start": "node -r module-alias/register dist/ --env production",
     "dev": "ts-node -r tsconfig-paths/register src/ --env development",
     "dev:watch": "nodemon --watch ./src --exec ts-node -r tsconfig-paths/register src/ --env development",
     "debug": "ts-node -r tsconfig-paths/register src/ --env development -enable-debug",
-    "build": "tsc --p tsconfig.json && tspath",
-    "test": ""
+    "build": "tsc && tspath -f ./dist",
+    "test": "tsc"
+  },
+  "_moduleAliases": {
+    "@": "dist/"
   },
   "dependencies": {
     "bluebird": "^3.5.3",
@@ -30,6 +33,7 @@
     "dayjs": "^1.8.5",
     "discord.js": "^11.4.2",
     "dotenv": "^6.2.0",
+    "module-alias": "^2.2.0",
     "node-opus": "^0.3.1",
     "redis": "^2.8.0"
   },
