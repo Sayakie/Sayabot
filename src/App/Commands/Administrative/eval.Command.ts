@@ -5,10 +5,14 @@ class Eval extends Command {
   constructor() {
     super()
 
-    this.cmds = 'eval'
-    this.description = ''
+    this.cmds = 'evaluate'
+    this.aliases = ['eval']
+    this.description = 'Evaluates the combined factors that received.'
+    this.format = '{PREFIX}eval <Element> [...elements]'
     this.group = Group.Administrative
+    this.userRequirePermissions = [Permission.Administrator]
     this.botRequirePermissions = [Permission.Administrator]
+    this.ownerOnly()
     this.hide()
   }
 
@@ -16,7 +20,7 @@ class Eval extends Command {
     const val = this.args.join(' ')
 
     // tslint:disable:no-eval
-    eval(val)
+    await eval(val)
   }
 }
 

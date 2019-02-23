@@ -6,22 +6,29 @@ const embed = (literal: TemplateStringsArray, ...args: any[]) =>
   literal.reduce((l, r, i) => l + (args[i - 1] || '') + r, '') +
   '\n```'
 
+const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
+
 class Debug extends Command {
   constructor() {
     super()
 
     this.cmds = 'debug'
-    this.aliases = []
-    this.description = ''
+    this.aliases = ['troubleshoot']
+    this.description = 'Prints the debug infomation'
+    this.format = '{PREFIX}debug'
     this.group = Group.Generic
+    this.guildOnly()
   }
 
   public async run() {
-    const debug = [
+    const guildID = this.message.guild.id
+    const guildRegion = capitalize(this.message.guild.region)
+
+    const debugInfo = [
       '--------------- generic ---------------',
       `Sayabot Version : ${pkg.version}`,
-      `       Guild ID : ${this.message.guild.id}`,
-      `   Guild Region : ${this.message.guild.region}`,
+      `       Guild ID : ${guildID}`,
+      `   Guild Region : ${guildRegion}`,
       '',
       '-------------- connection --------------',
       ' Connection : false',
@@ -31,7 +38,8 @@ class Debug extends Command {
       ' Max Size : 500',
       ' Max Time : 86400'
     ]
-    await this.message.channel.send(embed`${debug.join('\n')}`)
+
+    await this.message.channel.send(embed`${debugInfo.join('\n')}`)
   }
 }
 

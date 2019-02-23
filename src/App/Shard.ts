@@ -55,7 +55,6 @@ class Shard {
           messageSweepInterval: 120
         })
         this.instance.login(process.env.BOT_TOKEN)
-        this.instance.receivedData = new Map()
         this.instance.commands = new Discord.Collection()
         this.loadConnection()
         this.loadCommand()
@@ -79,7 +78,7 @@ class Shard {
       if (shardId && shardCount) {
         resolve()
       } else {
-        reject('Could not run Shard directly.')
+        reject('Could not run Shard directly')
       }
     })
 
@@ -130,7 +129,7 @@ class Shard {
     shardLog.log(
       `Logged in as: ${this.instance.user.tag}, with ${
         this.instance.users.size
-      } users of ${this.instance.guilds.size} servers.`
+      } users of ${this.instance.guilds.size} servers`
     )
   }
 
@@ -179,25 +178,18 @@ class Shard {
       .trim()
       .split(/\s+/g)
     const command = args.shift().toLowerCase()
-    const receivedData = { message, args }
 
     // Ignore if there are no applicable command
     if (!this.instance.commands.has(command)) {
-      shardLog.log(
-        `${
-          message.author.tag
-        } said ${message} but there are no applicable commands.`
-      )
+      // prettier-ignore
+      shardLog.log(`${message.author.tag} said ${message} but there are no applicable command`)
       return
-    }
-
-    for (const key of Object.keys(receivedData)) {
-      this.instance.receivedData.set(key, (receivedData as any)[key])
     }
 
     try {
       await this.instance.commands
         .get(command)
+        .inject(message, args)
         .inspect()
         .run()
     } catch (error) {
@@ -207,7 +199,7 @@ class Shard {
 
   // private readonly onMessageDelete = async()
 
-  private readonly syncRedis = async () => {
+  private readonly syncStats = async () => {
     /*
     if (env.useRedis) {
       await this.Redis.set(
@@ -251,7 +243,7 @@ class Shard {
   }
 
   private readonly createCycle = () => {
-    this.Cycle = setInterval(this.syncRedis, 30 * MILLISECONDS_A_SECOND)
+    this.Cycle = setInterval(this.syncStats, 30 * MILLISECONDS_A_SECOND)
   }
 
   private readonly createDebugCycle = () => {
@@ -259,7 +251,7 @@ class Shard {
   }
 
   private readonly debug = () => {
-    const memoryUsed = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)
+    const memoryUsed = (process.memoryUsage().rss / 1024 / 1024).toFixed(2)
 
     shardLog.debug(`Used ${memoryUsed} MB`)
   }

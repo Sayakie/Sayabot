@@ -1,11 +1,10 @@
+import { Embed } from '@/App/Utils'
 import { Command, Group } from '@/App/Structs/Command.Struct'
+import { Permission } from '@/App/Structs/Permission.Struct'
 import { Console } from '@/Tools'
 
 // const diff = (strings: any, id: string) => `\`\`\`diff\n${id} ${strings}\`\`\``
-const diff = (literal: TemplateStringsArray, ...args: any[]) =>
-  '```diff\n' +
-  literal.reduce((l, r, i) => l + (args[i - 1] || '') + r, '') +
-  '\n```'
+const diff = Embed('diff')
 // const CONNECTED = diff`+ [✔️] [SHARD_ID]: CONNECTED ~ [GUILD] guilds`
 // const DISCONNECTED = diff`- [❌] ${SHARD_ID}: DISCONNECTED`
 
@@ -17,9 +16,10 @@ class ShardInfo extends Command {
 
     this.cmds = 'shardinfo'
     this.aliases = ['shards']
-    this.description = ''
+    this.description = 'Prints all shards infomation.'
+    this.format = '{PREFIX}shardinfo [Shard number]'
     this.group = Group.Administrative
-    this.hide()
+    this.botRequirePermissions = [Permission.SendMessages]
   }
 
   public async run() {
