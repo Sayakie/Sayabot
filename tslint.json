@@ -2,7 +2,8 @@
   "extends": [
     "tslint:latest",
     "tslint-config-standard",
-    "tslint-config-prettier"
+    "tslint-config-prettier",
+    "tslint-plugin-prettier"
   ],
   "rulesDirectory": ["src"],
   "rules": {

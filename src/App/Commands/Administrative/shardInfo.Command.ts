@@ -1,6 +1,6 @@
-import { Embed } from '@/App/Utils'
 import { Command, Group } from '@/App/Structs/Command.Struct'
 import { Permission } from '@/App/Structs/Permission.Struct'
+import { Embed } from '@/App/Utils'
 import { Console } from '@/Tools'
 
 // const diff = (strings: any, id: string) => `\`\`\`diff\n${id} ${strings}\`\`\``

@@ -26,3 +26,6 @@ export const Embed = (type: string) => (
   `\`\`\`${type}\n` +
   literal.reduce((l, r, i) => l + (args[i - 1] || '') + r, '') +
   '\n```'
+
+export const Capitalize = (s: string) =>
+  s && s.charAt(0).toUpperCase() + s.slice(1)

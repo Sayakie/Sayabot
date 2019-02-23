@@ -1,12 +1,8 @@
 import { pkg } from '@/Config/Constants'
 import { Command, Group } from '@/App/Structs/Command.Struct'
+import { Embed, Capitalize } from '@/App/Utils'
 
-const embed = (literal: TemplateStringsArray, ...args: any[]) =>
-  '```autohotkey\n' +
-  literal.reduce((l, r, i) => l + (args[i - 1] || '') + r, '') +
-  '\n```'
-
-const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
+const ah = Embed('autohotkey')
 
 class Debug extends Command {
   constructor() {
@@ -21,14 +17,14 @@ class Debug extends Command {
   }
 
   public async run() {
-    const guildID = this.message.guild.id
-    const guildRegion = capitalize(this.message.guild.region)
+    const guildID = +this.message.guild.id
+    const guildRegion = Capitalize(this.message.guild.region)
 
     const debugInfo = [
       '--------------- generic ---------------',
-      `Sayabot Version : ${pkg.version}`,
-      `       Guild ID : ${guildID}`,
-      `   Guild Region : ${guildRegion}`,
+      ` Sayabot Version : ${pkg.version}`,
+      `        Guild ID : ${guildID}`,
+      `    Guild Region : ${guildRegion}`,
       '',
       '-------------- connection --------------',
       ' Connection : false',
@@ -39,7 +35,7 @@ class Debug extends Command {
       ' Max Time : 86400'
     ]
 
-    await this.message.channel.send(embed`${debugInfo.join('\n')}`)
+    await this.message.channel.send(ah`${debugInfo.join('\n')}`)
   }
 }
 

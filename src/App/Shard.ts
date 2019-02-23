@@ -1,4 +1,5 @@
 import * as fs from 'fs'
+import * as IPC from 'node-ipc'
 import * as Discord from 'discord.js'
 // import * as Redis from 'redis'
 import { join } from 'path'
@@ -11,7 +12,14 @@ import { Command } from '@/App/Structs/Command.Struct'
 import { Process, MILLISECONDS_A_SECOND } from '@/App/Utils'
 import { Console } from '@/Tools'
 
-const { SHARD_ID: shardId, SHARD_COUNT: shardCount } = process.env
+const {
+  SHARD_ID: shardId,
+  SHARD_COUNT: shardCount,
+  BOT_TOKEN,
+  BOT_PREFIX,
+  IPC_MASTER_ID,
+  IPC_CLUSTER_ID_PREFIX
+} = process.env
 const shardLog = Console('[Shard]')
 const disabledEvents: Discord.WSEventType[] = [
   'TYPING_START',
@@ -38,8 +46,8 @@ class Shard {
   */
   private instance: Instance
   // private Redis: RedisClient
-  private Cycle: NodeJS.Timeout
-  private debugCycle: NodeJS.Timeout
+  private _timeouts = new Set()
+  private _intervals = new Set()
 
   public constructor() {
     Process.setTitle(`${C.botName} v${pkg.version} - ${process.pid}`)
@@ -54,11 +62,17 @@ class Shard {
           messageCacheLifetime: 120,
           messageSweepInterval: 120
         })
-        this.instance.login(process.env.BOT_TOKEN)
+        this.instance.login(BOT_TOKEN)
         this.instance.commands = new Discord.Collection()
         this.loadConnection()
         this.loadCommand()
         this.bindEvent()
+      })
+      .then(() => {
+        IPC.config.id = `${IPC_CLUSTER_ID_PREFIX}${this.shardId}`
+        IPC.config.retry = 1500
+        IPC.config.silent = true
+        IPC.connectToNet(IPC_MASTER_ID)
       })
       /*
       .then(() => {
@@ -167,14 +181,14 @@ class Shard {
     // or, ignore all messages that not start with command prefix
     if (
       !this.isReady ||
-      !message.content.startsWith(process.env.BOT_PREFIX) ||
+      !message.content.startsWith(BOT_PREFIX) ||
       message.author.bot
     ) {
       return
     }
 
     const args = message.cleanContent
-      .slice(process.env.BOT_PREFIX.length)
+      .slice(BOT_PREFIX.length)
       .trim()
       .split(/\s+/g)
     const command = args.shift().toLowerCase()
@@ -220,6 +234,46 @@ class Shard {
     process.send(eventUniqueID)
   }
 
+  private readonly setTimeout = (
+    fn: Function,
+    delay: number,
+    ...args: any[]
+  ) => {
+    const timeout = setTimeout(() => {
+      fn(...args)
+
+      this._timeouts.delete(timeout)
+    }, delay)
+
+    this._timeouts.add(timeout)
+    return timeout
+  }
+
+  private readonly clearTimeout = (timeout: NodeJS.Timeout) => {
+    clearTimeout(timeout)
+    this._timeouts.delete(timeout)
+  }
+
+  private readonly setInterval = (
+    fn: Function,
+    delay: number,
+    ...args: any[]
+  ) => {
+    const interval = setInterval(() => {
+      fn(...args)
+
+      this._intervals.delete(interval)
+    }, delay)
+
+    this._intervals.add(interval)
+    return interval
+  }
+
+  private readonly clearInterval = (interval: NodeJS.Timeout) => {
+    clearInterval(interval)
+    this._intervals.delete(interval)
+  }
+
   private readonly bindEvent = () => {
     this.instance.once('ready', this.ready)
     this.instance.on('message', this.onMessage)
@@ -235,6 +289,8 @@ class Shard {
     // this.Redis.on('warn', shardLog.warn)
     // this.Redis.on('error', shardLog.error)
 
+    IPC.of['test'].on()
+
     process.on(IPCEvents.SHUTDOWN as any, this.shutdown)
     process.on(IPCEvents.FORCE_SHUTDOWN as any, this.shutdown)
 
@@ -243,11 +299,11 @@ class Shard {
   }
 
   private readonly createCycle = () => {
-    this.Cycle = setInterval(this.syncStats, 30 * MILLISECONDS_A_SECOND)
+    this.setInterval(this.syncStats, 30 * MILLISECONDS_A_SECOND)
   }
 
   private readonly createDebugCycle = () => {
-    this.debugCycle = setInterval(this.debug, 5 * MILLISECONDS_A_SECOND)
+    this.setInterval(this.debug, 5 * MILLISECONDS_A_SECOND)
   }
 
   private readonly debug = () => {
@@ -257,8 +313,10 @@ class Shard {
   }
 
   private readonly shutdown = async () => {
-    clearInterval(this.Cycle)
-    clearInterval(this.debugCycle)
+    for (const t of this._timeouts) this.clearTimeout(t)
+    for (const i of this._intervals) this.clearInterval(i)
+    this._timeouts.clear()
+    this._intervals.clear()
 
     if (C.useRedis) {
       // await this.Redis.quitAsync()

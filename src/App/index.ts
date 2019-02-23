@@ -2,6 +2,7 @@
 import * as fs from 'fs'
 import * as Cluster from 'cluster'
 import { ChildProcess } from 'child_process'
+import * as IPC from 'node-ipc'
 import { cpus } from 'os'
 import { join } from 'path'
 
@@ -12,6 +13,7 @@ import { Console } from '@/Tools'
 
 // let Prompt: readline.Interface
 const coreLog = Console('[Core]')
+const { IPC_MASTER_ID, IPC_HOST, IPC_PORT, NUMBER_OF_PROCESSORS } = process.env
 
 // To run via typescript
 if (Cluster.isMaster) {
@@ -23,6 +25,11 @@ if (Cluster.isMaster) {
     const exec = join(`${__dirname}/Shard.js`)
     Cluster.setupMaster({ exec })
   }
+
+  IPC.config.id = IPC_MASTER_ID
+  IPC.config.retry = 1500
+  IPC.config.silent = true
+  // IPC.config.maxConnections = numClusters
 
   /*
   Prompt = readline.createInterface({
@@ -75,7 +82,7 @@ const getPureArguments = () => {
 }
 
 const getClusters = () => {
-  const MAX_WORKERS = +process.env.NUMBER_OF_PROCESSORS || cpus().length
+  const MAX_WORKERS = +NUMBER_OF_PROCESSORS || cpus().length
 
   if (argv.has('enable-clusters')) {
     if (argv.has('clusters')) {
@@ -121,6 +128,7 @@ export const App = {
 
     Process.setTitle(commonInfo)
     Config.initialise()
+    App.serveIPC()
     App.initCluster()
     App.bindEvent()
     App.bindClusterEvent()
@@ -134,6 +142,13 @@ export const App = {
     for (const pid in Cluster.workers) {
       Cluster.workers[pid].send(cmd)
     }
+  },
+
+  serveIPC() {
+    IPC.serveNet(IPC_HOST, +IPC_PORT)
+    IPC.server.start()
+
+    coreLog.log('IPC Server is ready')
   },
 
   initCluster() {
@@ -170,6 +185,9 @@ export const App = {
         `Occured unhandled rejection at: ${position} because of ${reason}`
       )
     })
+
+    IPC.server.on(IPCEvents.FETCHUSER as any, coreLog.log)
+    IPC.server.on('error', coreLog.error)
 
     process.on(IPCEvents.BROADCAST as any, App.broadcast)
     process.on(IPCEvents.SHUTDOWN as any, App.shutdown)
