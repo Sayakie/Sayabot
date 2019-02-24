@@ -51,7 +51,7 @@ if (Cluster.isMaster) {
 
 export interface Broadcast {
   cmd: IPCEvents
-  data?: any | any[]
+  args?: any | any[]
 }
 
 interface ClusterProcess extends ChildProcess {
@@ -139,11 +139,11 @@ export const App = {
     process.emit(IPCEvents.READY as any)
   },
 
-  broadcast({ cmd }: Broadcast) {
+  broadcast(data: Broadcast) {
     // tslint:disable:no-shadowed-variable
     // App.Clusters.forEach(Cluster => Cluster.send(cmd))
     for (const pid in Cluster.workers) {
-      Cluster.workers[pid].send(cmd)
+      Cluster.workers[pid].send(data.cmd, ...data.args)
     }
   },
 

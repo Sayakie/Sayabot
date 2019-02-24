@@ -81,3 +81,5 @@ typings/
 
 # Compiled files
 dist/
+
+ffmpeg.exe

@@ -17,3 +17,6 @@ class Test extends EventEmitter {
 }
 
 new Test()
+const d = require('./test').default
+
+d

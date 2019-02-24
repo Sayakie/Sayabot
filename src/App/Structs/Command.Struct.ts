@@ -71,6 +71,7 @@ export abstract class Command {
   /** Initialise the command */
   public initialise(instance: Instance) {
     this.instance = instance
+    this.format = this.overlay(this.format)
   }
 
   /** Make the command for only guild */
@@ -86,6 +87,10 @@ export abstract class Command {
   /** Hide this command from the help command */
   protected hide() {
     this.hidden = true
+  }
+
+  protected overlay(s: string) {
+    return s.replace(/{PREFIX}/gi, process.env.BOT_PREFIX)
   }
 
   public inject(message: Discord.Message, args: string[]) {

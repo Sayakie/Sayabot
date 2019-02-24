@@ -37,7 +37,8 @@
     "module-alias": "^2.2.0",
     "node-ipc": "^9.1.1",
     "node-opus": "^0.3.1",
-    "redis": "^2.8.0"
+    "redis": "^2.8.0",
+    "sodium": "^3.0.2"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.25",

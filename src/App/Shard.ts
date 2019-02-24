@@ -40,8 +40,8 @@ interface ActivityOptions {
 }
 
 export class Shard extends EventEmitter {
-  private readonly shardId = Number.parseInt(shardId, 10)
-  private readonly shards = Number.parseInt(shardCount, 10)
+  public readonly shardId = Number.parseInt(shardId, 10)
+  public readonly shards = Number.parseInt(shardCount, 10)
   private isReady: boolean
   /*
   private isInstanceReady: boolean
@@ -74,14 +74,6 @@ export class Shard extends EventEmitter {
         this.loadConnection()
         this.loadCommand()
         this.bindEvent()
-      })
-      .then(() => {
-        /*
-        IPC.config.id = `${IPC_CLUSTER_ID_PREFIX}${this.shardId}`
-        IPC.config.retry = 1500
-        IPC.config.silent = true
-        IPC.connectToNet(IPC_MASTER_ID)
-        */
       })
       /*
       .then(() => {
@@ -165,7 +157,6 @@ export class Shard extends EventEmitter {
     }
   }
 
-  // @ts-ignore
   private readonly loadCommand = () => {
     const commandDir = join(`${__dirname}/Commands`)
     const commandFiles = this.walkSync(commandDir).filter(
