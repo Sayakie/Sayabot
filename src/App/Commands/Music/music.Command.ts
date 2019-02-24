@@ -1,11 +1,12 @@
 import * as fs from 'fs'
+import { join } from 'path'
 
 import { Instance } from '@/App/Structs/Shard.Struct'
 import { Command, Group } from '@/App/Structs/Command.Struct'
 import { Permission } from '@/App/Structs/Permission.Struct'
 
 class Music extends Command {
-  private subcommands = new Map<string, any>()
+  private subcommands = new Map<string, Command>()
   constructor() {
     super()
 
@@ -19,12 +20,11 @@ class Music extends Command {
   }
 
   public initialise(instance: Instance) {
-    this.instance = instance
-    this.format = this.overlay(this.format)
+    super.initialise(instance)
 
     const subcommandFiles = fs
       .readdirSync(__dirname)
-      .map(file => `${__dirname}\\${file}`)
+      .map(file => join(__dirname, file))
       .filter(
         file =>
           file.includes('.Music') &&
@@ -32,16 +32,24 @@ class Music extends Command {
       )
 
     subcommandFiles.forEach(file => {
-      const subcommandName = file.split(`${__dirname}\\`)[1].split('.')[0]
-      const subcommandPack = require(file).default
+      const subcommandPack = require(file).default as Command
 
-      this.subcommands.set(subcommandName, subcommandPack)
+      subcommandPack.initialise(instance)
+      subcommandPack.aliases.unshift(subcommandPack.cmds)
+      subcommandPack.aliases.forEach(cmd => {
+        this.subcommands.set(cmd, subcommandPack)
+      })
     })
   }
 
   public async run() {
-    if (this.subcommands.has(this.args[0])) {
-      await this.subcommands.get(this.args[0])(this.message)
+    const subcommand = this.args[0]
+    if (this.subcommands.has(subcommand)) {
+      await this.subcommands
+        .get(subcommand)
+        .inject(this.message, this.args)
+        .inspect()
+        .run()
     } else {
       await this.message.channel.send(
         'There is no applicable commands. Type {PREFIX}help music'

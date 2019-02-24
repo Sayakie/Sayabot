@@ -64,6 +64,7 @@ export abstract class Command {
 
   protected constructor() {
     this.aliases = []
+    this.format = ''
     this.userRequirePermissions = []
     this.botRequirePermissions = []
   }
@@ -135,9 +136,13 @@ export abstract class Command {
       }
     })
 
-    if (!botStats.hasPerms) {
+    if (!userStats.hasPerms || !botStats.hasPerms) {
+      const subject = !userStats.hasPerms ? 'you' : 'I'
+      const lacks = !userStats.hasPerms
+        ? botStats.missPerms
+        : userStats.missPerms
       // prettier-ignore
-      this.message.channel.send(`I was unable to proceed that command because I lack the permission(s): ${botStats.missPerms.join(', ')}`)
+      this.message.channel.send(`I was unable to proceed that command because ${subject} lack the permission(s): ${lacks.join(', ')}`)
 
       // @ts-ignore
       return

@@ -1,5 +1,5 @@
-import C from '@/Config/Constants'
-import { argv } from '@/App'
+//import C from '@/Config/Constants'
+//import { argv } from '@/App'
 import { Shard } from '@/App/Shard'
 import { Console } from '@/Tools'
 
@@ -16,9 +16,9 @@ export class ClientManager {
     this.client.on('debug', this.debug)
   }
 
-  private debug(...log: string[]) {
-    if (argv.has('enable-debug') || C.enableDebug) {
-      shardLog.debug(log)
-    }
+  private debug(log: string, ...logs: string[]) {
+    //if (argv.has('enable-debug') || C.enableDebug) {
+    shardLog.debug(log, ...logs)
+    //}
   }
 }

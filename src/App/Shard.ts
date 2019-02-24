@@ -286,6 +286,12 @@ export class Shard extends EventEmitter {
     process.on(IPCEvents.FORCE_SHUTDOWN as any, this.shutdown)
 
     // process.on('message', (cmd: IPCEvents) => process.emit(cmd as any))
+    process.on('uncaughtException', Error => shardLog.error(Error.stack))
+    process.on('unhandledRejection', (reason, position) => {
+      shardLog.error(
+        `Occured unhandled rejection at: ${position} because of ${reason}`
+      )
+    })
     process.on('SIGINT', this.shutdown)
   }
 
