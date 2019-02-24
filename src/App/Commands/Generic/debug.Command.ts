@@ -1,4 +1,4 @@
-import { pkg } from '@/Config/Constants'
+import { version } from '@/Config/Constants'
 import { Command, Group } from '@/App/Structs/Command.Struct'
 import { Embed, Capitalize } from '@/App/Utils'
 
@@ -22,7 +22,7 @@ class Debug extends Command {
 
     const debugInfo = [
       '--------------- generic ---------------',
-      ` Sayabot Version : ${pkg.version}`,
+      ` Sayabot Version : ${version}`,
       `        Guild ID : ${guildID}`,
       `    Guild Region : ${guildRegion}`,
       '',

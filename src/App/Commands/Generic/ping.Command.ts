@@ -11,7 +11,8 @@ class Ping extends Command {
     super()
 
     this.cmds = 'ping'
-    this.description = ''
+    this.description = 'Ping? Pong!'
+    this.format = '{PREFIX}ping'
     this.group = Group.Generic
   }
 
@@ -19,11 +20,11 @@ class Ping extends Command {
     await this.message.channel
       .send('Ping?')
       .then(async (msg: Discord.Message) => {
+        const heatbeatAck = msg.createdTimestamp - this.message.createdTimestamp
+
         await msg.edit(
-          tagged`Pong! Took ${msg.createdTimestamp -
-            this.message.createdTimestamp} ms. API Latency tooks ${Math.round(
-            this.instance.ping
-          )}ms`
+          // prettier-ignore
+          tagged`Pong! Took ${heatbeatAck} ms. API Latency tooks ${Math.round(this.instance.ping)} ms`
         )
       })
       .catch(commandLog.error)

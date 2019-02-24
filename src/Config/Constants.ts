@@ -8,9 +8,6 @@ const enableDebug = false
 
 const owners = ['247351691077222401']
 
-// tslint:disable-next-line:no-var-requires
-export const pkg = require('../../package.json')
-
 export const enum IPCEvents {
   EVAL,
   MESSAGE,
@@ -32,5 +29,8 @@ export const enum IPCEvents {
 export const enum PromptEvents {
   EXIT = 'EXIT'
 }
+
+// tslint:disable-next-line:no-var-requires
+export const version = require('../../package.json').version
 
 export default { botName, useCluster, useRedis, Clusters, owners, enableDebug }

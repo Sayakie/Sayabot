@@ -2,18 +2,19 @@
 import * as fs from 'fs'
 import * as Cluster from 'cluster'
 import { ChildProcess } from 'child_process'
-import * as IPC from 'node-ipc'
 import { cpus } from 'os'
 import { join } from 'path'
 
-import C, { pkg, IPCEvents, PromptEvents } from '@/Config/Constants'
+import C, { IPCEvents, PromptEvents, version } from '@/Config/Constants'
 import { Process } from '@/App/Utils'
 import { Config } from '@/Config'
 import { Console } from '@/Tools'
 
 // let Prompt: readline.Interface
 const coreLog = Console('[Core]')
-const { IPC_MASTER_ID, IPC_HOST, IPC_PORT, NUMBER_OF_PROCESSORS } = process.env
+const {
+  /*IPC_MASTER_ID, IPC_HOST, IPC_PORT,*/ NUMBER_OF_PROCESSORS
+} = process.env
 
 // To run via typescript
 if (Cluster.isMaster) {
@@ -26,6 +27,7 @@ if (Cluster.isMaster) {
     Cluster.setupMaster({ exec })
   }
 
+  /*
   IPC.config.id = IPC_MASTER_ID
   IPC.config.retry = 1500
   IPC.config.silent = true
@@ -122,13 +124,14 @@ export const App = {
   */
 
   start() {
-    const commonInfo = `${C.botName} v${pkg.version}`
+    const commonInfo = `${C.botName} v${version}`
     coreLog.log(`Start ${commonInfo}`)
     coreLog.log(argv)
 
     Process.setTitle(commonInfo)
     Config.initialise()
-    App.serveIPC()
+    App.validateOptions()
+    // App.serveIPC()
     App.initCluster()
     App.bindEvent()
     App.bindClusterEvent()
@@ -145,10 +148,47 @@ export const App = {
   },
 
   serveIPC() {
+    /*
     IPC.serveNet(IPC_HOST, +IPC_PORT)
     IPC.server.start()
 
     coreLog.log('IPC Server is ready')
+    */
+  },
+
+  validateOptions() {
+    if (typeof C.botName !== 'string') {
+      throw new TypeError('The botName option must be a string.')
+    }
+
+    if (typeof C.useCluster !== 'boolean') {
+      throw new TypeError('The useCluster option must be a boolean.')
+    }
+
+    if (typeof C.Clusters !== ('boolean' || 'number')) {
+      throw new TypeError('The Clusters option must be a boolean or number.')
+    }
+
+    if (typeof C.Clusters === 'number' && C.Clusters < 0) {
+      throw new RangeError('The Clusters option must be at least 0.')
+    }
+
+    if (typeof C.enableDebug !== 'boolean') {
+      throw new TypeError('The enableDebug option must be a boolean.')
+    }
+
+    if (!(C.owners instanceof Array)) {
+      throw new TypeError('The owners option must be an Array.')
+    }
+
+    if (argv.has('enable-clusters')) {
+      if (
+        typeof +argv.get('clusters')! !== 'number' ||
+        isNaN(argv.get('clusters'))
+      ) {
+        throw new TypeError('The clusters argument must be a number.')
+      }
+    }
   },
 
   initCluster() {
@@ -185,9 +225,6 @@ export const App = {
         `Occured unhandled rejection at: ${position} because of ${reason}`
       )
     })
-
-    IPC.server.on(IPCEvents.FETCHUSER as any, coreLog.log)
-    IPC.server.on('error', coreLog.error)
 
     process.on(IPCEvents.BROADCAST as any, App.broadcast)
     process.on(IPCEvents.SHUTDOWN as any, App.shutdown)

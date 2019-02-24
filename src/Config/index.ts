@@ -10,6 +10,8 @@ const configLog = Console('[Config]')
 
 export const Config = {
   initialise() {
+    configLog.log('Initialise the configuration')
+
     if (!process.env.NODE_ENV) {
       if (!argv.has('env')) {
         configLog.warn(

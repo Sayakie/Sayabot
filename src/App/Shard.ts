@@ -1,11 +1,12 @@
 import * as fs from 'fs'
-import * as IPC from 'node-ipc'
 import * as Discord from 'discord.js'
 // import * as Redis from 'redis'
+import { EventEmitter } from 'events'
 import { join } from 'path'
 // import { promisifyAll } from 'bluebird'
 
-import C, { pkg, IPCEvents } from '@/Config/Constants'
+import C, { IPCEvents, version } from '@/Config/Constants'
+import { ClientManager } from '@/App/Internal/ClientManager'
 import { Instance } from '@/App/Structs/Shard.Struct'
 import { Command } from '@/App/Structs/Command.Struct'
 // import { RedisClient } from '@/App/Structs/Redis.Struct'
@@ -16,9 +17,11 @@ const {
   SHARD_ID: shardId,
   SHARD_COUNT: shardCount,
   BOT_TOKEN,
-  BOT_PREFIX,
+  BOT_PREFIX
+  /*
   IPC_MASTER_ID,
   IPC_CLUSTER_ID_PREFIX
+  */
 } = process.env
 const shardLog = Console('[Shard]')
 const disabledEvents: Discord.WSEventType[] = [
@@ -36,7 +39,7 @@ interface ActivityOptions {
   type?: ActivityType | number
 }
 
-class Shard {
+export class Shard extends EventEmitter {
   private readonly shardId = Number.parseInt(shardId, 10)
   private readonly shards = Number.parseInt(shardCount, 10)
   private isReady: boolean
@@ -45,12 +48,14 @@ class Shard {
   private isRedisReady: boolean
   */
   private instance: Instance
+  private manager: ClientManager
   // private Redis: RedisClient
-  private _timeouts = new Set()
-  private _intervals = new Set()
+  private readonly _timeouts = new Set()
+  private readonly _intervals = new Set()
 
   public constructor() {
-    Process.setTitle(`${C.botName} v${pkg.version} - ${process.pid}`)
+    super()
+    Process.setTitle(`${C.botName} v${version} - ${process.pid}`)
 
     this.isExistsShard()
       .then(() => {
@@ -63,16 +68,20 @@ class Shard {
           messageSweepInterval: 120
         })
         this.instance.login(BOT_TOKEN)
-        this.instance.commands = new Discord.Collection()
+        this.instance.commands = new Map()
+        this.manager = new ClientManager(this)
+        this.manager.register()
         this.loadConnection()
         this.loadCommand()
         this.bindEvent()
       })
       .then(() => {
+        /*
         IPC.config.id = `${IPC_CLUSTER_ID_PREFIX}${this.shardId}`
         IPC.config.retry = 1500
         IPC.config.silent = true
         IPC.connectToNet(IPC_MASTER_ID)
+        */
       })
       /*
       .then(() => {
@@ -137,7 +146,7 @@ class Shard {
 
     this.createCycle()
     this.createDebugCycle()
-    this.emit(IPCEvents.SHARDREADY)
+    // this.emit(IPCEvents.SHARDREADY)
     this.isReady = true
 
     shardLog.log(
@@ -230,10 +239,7 @@ class Shard {
     */
   }
 
-  private readonly emit = (eventUniqueID: IPCEvents) => {
-    process.send(eventUniqueID)
-  }
-
+  // @ts-ignore
   private readonly setTimeout = (
     fn: Function,
     delay: number,
@@ -259,11 +265,7 @@ class Shard {
     delay: number,
     ...args: any[]
   ) => {
-    const interval = setInterval(() => {
-      fn(...args)
-
-      this._intervals.delete(interval)
-    }, delay)
+    const interval = setInterval(fn, delay, ...args)
 
     this._intervals.add(interval)
     return interval
@@ -289,12 +291,10 @@ class Shard {
     // this.Redis.on('warn', shardLog.warn)
     // this.Redis.on('error', shardLog.error)
 
-    IPC.of['test'].on()
-
     process.on(IPCEvents.SHUTDOWN as any, this.shutdown)
     process.on(IPCEvents.FORCE_SHUTDOWN as any, this.shutdown)
 
-    process.on('message', (cmd: IPCEvents) => process.emit(cmd as any))
+    // process.on('message', (cmd: IPCEvents) => process.emit(cmd as any))
     process.on('SIGINT', this.shutdown)
   }
 
@@ -303,13 +303,13 @@ class Shard {
   }
 
   private readonly createDebugCycle = () => {
-    this.setInterval(this.debug, 5 * MILLISECONDS_A_SECOND)
-  }
+    const Debugger = () => {
+      const memoryUsed = (process.memoryUsage().rss / 1024 / 1024).toFixed(2)
 
-  private readonly debug = () => {
-    const memoryUsed = (process.memoryUsage().rss / 1024 / 1024).toFixed(2)
+      this.emit('debug', `Used ${memoryUsed} MB`)
+    }
 
-    shardLog.debug(`Used ${memoryUsed} MB`)
+    this.setInterval(Debugger, 5 * MILLISECONDS_A_SECOND)
   }
 
   private readonly shutdown = async () => {
